@@ -32,6 +32,9 @@ a lint, as defined under Operations below).
   never edit captured files. You rarely add files here by hand: when the human
   gives you a link or a file, capturing a local copy into `raw/` is the first
   step of ingest (see Operations).{{IMAGE_GUIDANCE}}
+- `scripts/` — reusable extraction scripts (e.g. `extract-pdf.py`,
+  `extract-youtube.py`, `outline.py`). Run these during the Fetch phase of
+  ingest to avoid ad-hoc parsing. See "Fetch scripts" under Ingest.
 - `wiki/` — markdown pages you own: summaries, entity pages, concept pages,
   comparisons, an `overview.md` synthesis. You create and update these.
 - `log.md` — append-only chronological record.
@@ -76,9 +79,10 @@ you ingest** — creating it if it doesn't exist yet. A brand-new wiki has no
 ## Operations
 
 ### Ingest (the human gives you a source — usually a link, sometimes a file)
+
 **Pick a mode first** (ask if it's unclear which):
-- **Capture** (default — for sources you'll read and cite): archive an immutable
-  local copy, then synthesize. Follow "Capture first" below.
+- **Capture** (default — for sources you'll read and cite): two-phase
+  fetch-then-process, described below.
 - **Pointer** (for tools / reference sites you just want to bookmark, not
   archive): keep only the link. Skip `raw/` and the summary page. Add a one-line
   entry under `## Tools & links` in `index.md` (URL + one-liner + tags), or a
@@ -88,45 +92,78 @@ you ingest** — creating it if it doesn't exist yet. A brand-new wiki has no
   multi-page synthesis. (Tradeoff: a pointer can rot; that's accepted because you
   want the live tool, not a snapshot.)
 
-**Capture mode — capture first.** Save an immutable local copy into `raw/` before
-summarizing — the human should never have to download anything by hand:
-- **Web article / page** → `WebFetch` it; save the extracted text as
-  `raw/<slug>.md`. Record the original URL + access date in the page frontmatter.
-- **PDF** (URL or local) → download a URL to `raw/<slug>.pdf`; read it natively.
-- **Local file** → move/copy it into `raw/` if it isn't already there.{{VIDEO_GUIDANCE}}
+#### Capture mode — two-phase ingest
 
-**Verify the capture before you trust it.** Confirm you actually got the content —
-non-empty, the expected document, not an auth wall / error page / truncated or
-blank result. **If capture fails or is partial, never assume or fabricate the
-content and do not synthesize as if you have it.** Instead: set
-`captured: failed — <reason>` (or `pending`) in frontmatter, record only what you
-reliably know (title, link, version, how it relates), explicitly flag the gap in
-the page, in `_hot.md`, and in the log, and tell the human. Any summary must be
-built *only* from text you actually captured.
+Fetching is mechanical (no reasoning). Synthesis needs intelligence. Split ingest
+into two phases to minimize token cost.
 
-**Always capture the version** when the source has one — Confluence page version,
-Google Doc/PDF revision, `vN` in the filename, or git SHA — into the page's
-`version:` frontmatter. It's how lint detects staleness against the live source.
+**For small sources** (under ~2000 tokens), skip the two-phase ceremony and
+process in one pass.
 
-Then build the wiki:
-1. Read the captured source. Discuss key takeaways with the human.
-2. Summarize the source. For a **single source**, the concept/entity page it
-   feeds can double as the summary — record the `raw/` capture in that page's
-   frontmatter and cite it; don't create a near-duplicate `type: source` page.
-   Create a separate `type: source` page only when one source informs many pages
-   and needs its own standalone summary.
-3. Update `index.md` (add the source; refresh "Recently Active"; add/adjust
-   entity & concept entries) and the relevant `_index-<domain>.md` if in use.
-4. Refresh `_hot.md` (create it if it doesn't exist yet): add any new active
-   thread or key number; prune what's stale.
-5. Update relevant entity/concept pages across `wiki/` — note where the new
-   source contradicts or strengthens existing claims.
-   - **Capture people.** When a source reveals who is working on what, create or
-     update a person page in `wiki/people/` (role, current focus / what they're
-     working on, key projects, relationships) and link it. Record relationships
-     the human tells you (e.g. "X is my manager").
-6. Append a log entry: `## [YYYY-MM-DD] ingest | <source title>`.
-   A single source may touch 10–15 pages.
+##### Phase 1: Fetch (script or subagent — zero main-model tokens)
+
+Get the source content into `raw/<slug>.md` without reading it through the main
+context window. Use extraction scripts in `scripts/` whenever possible.
+
+**Fetch scripts** (in `scripts/`):
+
+| Script | Input | Usage |
+|--------|-------|-------|
+| `extract-pdf.py` | PDF file | `python scripts/extract-pdf.py raw/<slug>.pdf` |
+| `extract-youtube.py` | URL or VTT file | `python scripts/extract-youtube.py <url> raw/<slug>.md` |
+| `outline.py` | Any markdown file | `python scripts/outline.py raw/<slug>.md` — produces compact heading outline |
+
+Other sources:
+- **Web article** → `WebFetch`; save to `raw/<slug>.md`.
+- **Local file** → copy into `raw/`.{{VIDEO_GUIDANCE}}
+
+After extraction, always run `python scripts/outline.py raw/<slug>.md`.
+
+**Unknown source types — escalation ladder:**
+1. **Probe cheaply.** Check file extension, MIME type, or URL pattern. Map to a
+   known type if possible.
+2. **Ask the human.** They often know the fastest extraction path.
+3. **Small-sample exploration.** Read only ~100 lines to understand the format.
+   Prefer conversion tools (pandoc, textract) over LLM parsing.
+4. **Create a new script** if the format will recur.
+
+**Subagent delegation.** When fetch needs adaptability (auth, errors, multi-step),
+delegate to a background subagent with this prompt template:
+```
+Fetch the content from <source> into <VAULT>/raw/<slug>.<ext>.
+Then run: python <VAULT>/scripts/<extract-script> <VAULT>/raw/<slug>.<ext>
+Then run: python <VAULT>/scripts/outline.py <VAULT>/raw/<slug>.md
+Do NOT create or update any wiki pages. Only fetch and extract.
+```
+
+**Verify the capture.** Confirm non-empty, expected content, not an auth wall.
+**If capture fails, never fabricate content.** Set `captured: failed — <reason>`,
+flag the gap, and tell the human.
+
+**Always capture the version** when the source has one — into the page's
+`version:` frontmatter. It's how lint detects staleness.
+
+##### Phase 2: Process (main model, user-guided)
+
+Re-engage with the outline, not the full document.
+
+1. **Present the outline** and the ingest directive to the human:
+   ```
+   Source: <slug in raw/>
+   Focus: <which sections/topics matter — or "all" for small docs>
+   Pages: <wiki pages to create or update, or "auto">
+   Tags: <relevant tags>
+   Notes: <any additional context>
+   ```
+2. **Read only the flagged sections** using line offsets from the outline.
+3. **Summarize.** For a single source, the concept/entity page can double as the
+   summary. Create a separate `type: source` page only when one source informs
+   many pages.
+4. **Update `index.md`** and relevant `_index-<domain>.md`.
+5. **Refresh `_hot.md`** (create if absent).
+6. **Update entity/concept pages** — note contradictions or reinforcements.
+   - **Capture people.** Create/update person pages when sources reveal roles.
+7. **Append log entry:** `## [YYYY-MM-DD] ingest | <source title>`.
 
 ### Query (the human asks a question)
 Read in tiers; stop as soon as you can answer, and keep query context small:

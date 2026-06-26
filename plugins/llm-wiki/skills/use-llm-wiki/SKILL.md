@@ -35,9 +35,24 @@ hooks/settings activate; they won't).
 ## Step 3 — Do the operation
 
 **Ingest** (user gave a source — a link or file):
-- Follow the vault's Ingest workflow from its `CLAUDE.md`, including its
-  capture-vs-pointer mode choice, writing to `<VAULT>/raw/`, `<VAULT>/wiki/`,
-  `<VAULT>/index.md`, `<VAULT>/_hot.md`, `<VAULT>/log.md` as that schema directs.
+Follow the vault's two-phase Ingest workflow from its `CLAUDE.md`:
+
+- **Phase 1 — Fetch (low-token).** Get the content into `<VAULT>/raw/<slug>.md`
+  using extraction scripts when available (check `<VAULT>/scripts/`). For known
+  types (PDF, YouTube, Google Docs JSON), run the matching script directly — no
+  need to read the content through the context window. For unknown formats,
+  follow the escalation ladder in the vault's schema (probe → ask user →
+  small-sample → new script). After extraction, run
+  `python <VAULT>/scripts/outline.py <VAULT>/raw/<slug>.md` to produce a compact
+  heading outline. **Subagent delegation**: when fetch needs adaptability (auth,
+  multi-step), delegate to a background subagent with a tightly scoped prompt
+  (fetch + extract only, no wiki updates).
+
+- **Phase 2 — Process (user-guided).** Present the outline and an ingest
+  directive template to the user. Read only the sections they flag. Then
+  synthesize wiki pages, update indexes/hot cache/log per the vault's schema.
+  For small sources (<2000 tokens), skip the directive and process in one pass.
+
 - **Verify every capture succeeded** (non-empty, the expected document, not an
   auth wall / error / blank result). If it fails or is partial, **never assume or
   fabricate the content** — mark it `captured: failed — <reason>` (or `pending`),

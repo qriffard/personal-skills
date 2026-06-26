@@ -70,6 +70,10 @@ Create the directory tree:
 ├── index.md             # from templates/index.md.template (master index)
 ├── log.md               # from templates/log.md.template
 ├── raw/                 # (+ raw/assets/ only if images enabled)
+├── scripts/             # extraction scripts for two-phase ingest
+│   ├── extract-pdf.py
+│   ├── extract-youtube.py
+│   └── outline.py
 └── wiki/
 ```
 Do **not** create `_hot.md` or any `_index-<domain>.md` — both are created
@@ -79,6 +83,15 @@ domain sub-index when that domain grows large enough). A fresh wiki has neither.
 Fill every `{{PLACEHOLDER}}` from Step 2. Leave `raw/` and `wiki/` empty (no
 example pages). Add a `.gitkeep` to `raw/`, `wiki/`, and — if images are
 enabled — `raw/assets/`, so git tracks the empty directories.
+
+**Always create the `scripts/` directory** with at least these extraction scripts
+(copy them from `templates/scripts/`):
+- `extract-pdf.py` — PDF to markdown (tries pymupdf4llm, pymupdf, pdftotext)
+- `extract-youtube.py` — YouTube URL or VTT/SRT to timestamped markdown
+- `outline.py` — extracts headings with line numbers from any markdown file
+Make all scripts executable (`chmod +x`). These support the two-phase ingest
+protocol described in the wiki's CLAUDE.md — the Fetch phase runs these scripts
+to extract content without consuming main-model tokens.
 
 Always create `.gitattributes` from `templates/gitattributes.template` (union-merge
 for `log.md` so the append-only log doesn't conflict across machines).
