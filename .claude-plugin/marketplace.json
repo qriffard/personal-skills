@@ -39,6 +39,12 @@
       "source": "./plugins/session-handoff",
       "version": "1.0.0",
       "description": "Generate a dense, technical State of the Project summary for clean session handoffs — maximizes context continuity while minimizing token cost in the next window."
+    },
+    {
+      "name": "everything-tracker",
+      "source": "./plugins/everything-tracker",
+      "version": "1.0.0",
+      "description": "Sync Kobo highlights into the personal LLM wiki — pulls highlights from the Kobo cloud API, enriches each book with Open Library metadata, and writes structured raw files ready for wiki ingest."
     }
   ]
 }

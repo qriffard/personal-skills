@@ -1,0 +1,7 @@
+{
+  "name": "everything-tracker",
+  "version": "1.0.0",
+  "description": "Sync Kobo highlights into the personal LLM wiki — pulls highlights from the Kobo cloud API, enriches each book with Open Library metadata, and writes structured raw files ready for wiki ingest.",
+  "author": { "name": "Quentin Riffard" },
+  "keywords": ["kobo", "reading", "highlights", "wiki", "books"]
+}
