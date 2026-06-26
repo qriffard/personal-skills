@@ -1,0 +1,9 @@
+{
+  "name": "agent-practice-audit",
+  "version": "1.0.0",
+  "description": "Audit your coding agent practices — inspects CLAUDE.md config files, skill inventory, and recent session transcripts for anti-patterns. Produces a scored report with actionable recommendations based on best practices for Cursor and Claude Code.",
+  "author": {
+    "name": "Quentin Riffard"
+  },
+  "keywords": ["audit", "best-practices", "cost-optimization", "agent-hygiene"]
+}
