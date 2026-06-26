@@ -1,0 +1,7 @@
+{
+  "name": "data-viz-design",
+  "version": "1.0.0",
+  "description": "Produce publication-grade plots, charts, and dashboards for mixed expert/executive audiences. Chart selection, decluttering, color, and storytelling — distilled from Tufte, Knaflic, Cairo, and Andrews.",
+  "author": { "name": "Quentin Riffard" },
+  "keywords": ["data-visualization", "charts", "dashboards", "tufte", "design"]
+}

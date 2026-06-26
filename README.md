@@ -9,6 +9,9 @@ and shareable across machines and with other people.
 | Plugin | What it does |
 |--------|--------------|
 | **llm-wiki** | Create and operate Karpathy-style LLM Wikis (`create-llm-wiki`, `use-llm-wiki`). |
+| **data-viz-design** | Publication-grade plots, charts, and dashboards for expert/executive audiences. |
+| **diagnose-network-latency** | Diagnose slow/laggy internet on macOS and pinpoint the root cause. |
+| **llm-council** | Convene a panel of model instances to pressure-test a decision or answer a question. |
 
 ## Install
 

@@ -1,0 +1,7 @@
+{
+  "name": "llm-council",
+  "version": "1.0.0",
+  "description": "Convene a panel of model instances to weigh in before a single answer — decision mode (pressure-test a high-stakes decision) and question mode (independent answers, synthesized).",
+  "author": { "name": "Quentin Riffard" },
+  "keywords": ["llm", "decision-making", "multi-agent", "review", "council"]
+}

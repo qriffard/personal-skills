@@ -9,6 +9,24 @@
       "source": "./plugins/llm-wiki",
       "version": "1.0.0",
       "description": "Bootstrap and operate Karpathy-style LLM Wikis: create-llm-wiki scaffolds a new vault; use-llm-wiki ingests into / queries an existing vault from anywhere."
+    },
+    {
+      "name": "data-viz-design",
+      "source": "./plugins/data-viz-design",
+      "version": "1.0.0",
+      "description": "Publication-grade plots, charts, and dashboards for expert/executive audiences (Tufte, Knaflic, Cairo, Andrews)."
+    },
+    {
+      "name": "diagnose-network-latency",
+      "source": "./plugins/diagnose-network-latency",
+      "version": "1.0.0",
+      "description": "Diagnose slow/laggy/flaky internet on macOS and pinpoint the root cause (interference, congestion, signal, VPN, DNS, ISP)."
+    },
+    {
+      "name": "llm-council",
+      "source": "./plugins/llm-council",
+      "version": "1.0.0",
+      "description": "Convene a panel of model instances to pressure-test a decision or answer a question from multiple perspectives, then synthesize."
     }
   ]
 }

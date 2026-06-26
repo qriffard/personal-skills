@@ -1,0 +1,7 @@
+{
+  "name": "diagnose-network-latency",
+  "version": "1.0.0",
+  "description": "Diagnose slow, laggy, or flaky internet on macOS — measures latency, jitter, packet loss, Wi-Fi signal/quality, DNS speed, throughput, and VPN overhead, then pinpoints the root cause.",
+  "author": { "name": "Quentin Riffard" },
+  "keywords": ["network", "wifi", "latency", "macos", "diagnostics"]
+}
