@@ -1,0 +1,21 @@
+# Meal Planner — configuration
+# Single source of truth for paths and defaults.
+# Edit this file (not SKILL.md) when the vault moves or when defaults change.
+
+repo_root: ~/claude-code/meal-plan-web
+context_root: ~/claude-code/meal-plan-web/context
+data_root: ~/claude-code/meal-plan-web/data
+locale: en
+location: San Francisco, CA
+week_starts_on: sunday
+recent_weeks_to_avoid: 4
+default_meat_meals_per_week: 2
+
+
+preferred_sources:
+  - NYT Cooking
+  - Serious Eats
+  - Ottolenghi
+  - Bon Appétit
+  - Smitten Kitchen
+  - Pick Up Limes

@@ -1,0 +1,7 @@
+{
+  "name": "meal-planner",
+  "version": "1.0.0",
+  "description": "Weekly meal planning for the family — plan menus, save recipes, rate meals, generate grocery lists, and push them to Apple Reminders.",
+  "author": { "name": "Quentin Riffard" },
+  "keywords": ["meal-planning", "cooking", "recipes", "grocery", "family"]
+}
