@@ -33,6 +33,12 @@
       "source": "./plugins/meal-planner",
       "version": "1.0.0",
       "description": "Weekly meal planning for the family — plan menus, save recipes, rate meals, generate grocery lists, and push them to Apple Reminders."
+    },
+    {
+      "name": "session-handoff",
+      "source": "./plugins/session-handoff",
+      "version": "1.0.0",
+      "description": "Generate a dense, technical State of the Project summary for clean session handoffs — maximizes context continuity while minimizing token cost in the next window."
     }
   ]
 }

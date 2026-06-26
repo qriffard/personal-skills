@@ -1,0 +1,7 @@
+{
+  "name": "session-handoff",
+  "version": "1.0.0",
+  "description": "Generate a dense, technical State of the Project summary for clean session handoffs — maximizes context continuity while minimizing token cost in the next window.",
+  "author": { "name": "Quentin Riffard" },
+  "keywords": ["session", "handoff", "context", "summary", "continuity"]
+}
