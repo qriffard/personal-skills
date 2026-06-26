@@ -1,0 +1,42 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/sync-wiki.sh\" stop",
+            "async": true,
+            "statusMessage": "Syncing wiki…"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/refresh-wiki.sh\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/lint-check.sh\""
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/sync-wiki.sh\" end",
+            "timeout": 30,
+            "statusMessage": "Pushing wiki…"
+          }
+        ]
+      }
+    ]
+  }
+}

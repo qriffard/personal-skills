@@ -1,0 +1,7 @@
+# {{TOPIC}} — Log
+
+> Append-only chronological record. Each entry starts with `## [YYYY-MM-DD] <op> | <title>`
+> so it is greppable: `grep "^## \[" log.md | tail -5`.
+
+## [{{DATE}}] create | Wiki initialized
+Bootstrapped LLM Wiki for "{{TOPIC}}". Purpose: {{PURPOSE}}. Use-case: {{USE_CASE}}.

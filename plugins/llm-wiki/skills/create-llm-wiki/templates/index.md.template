@@ -1,0 +1,27 @@
+# {{TOPIC}} — Master Index
+
+> Created {{DATE}} — {{PURPOSE}}
+> Catalog of the wiki. Read this *after* `_hot.md` when the hot cache isn't
+> enough. For a large domain, drill into its `_index-<domain>.md` rather than
+> scanning everything here. The LLM updates this on every ingest.
+
+## Recently Active
+<!-- pages touched in the last few ingests — the freshest material -->
+
+## Domain sub-indexes
+<!-- [[_index-<domain>]] — one-liner. Auto-created when a tag-cluster grows past ~8 pages. -->
+
+## Overview
+- [[overview]] — high-level summary and current thesis (create on first ingest)
+
+## Sources
+<!-- one line per ingested source: [[source-slug]] — one-line summary (YYYY-MM-DD) -->
+
+## Entities
+<!-- people, orgs, places, works: [[entity-slug]] — one-liner -->
+
+## Concepts
+<!-- ideas, themes, methods: [[concept-slug]] — one-liner -->
+
+## Tools & links
+<!-- pointer-mode bookmarks (not captured): <url> — one-liner [tags] -->

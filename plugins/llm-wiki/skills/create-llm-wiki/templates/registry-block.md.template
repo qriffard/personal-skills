@@ -1,0 +1,16 @@
+<!-- BEGIN: create-llm-wiki registry -->
+## LLM Wikis
+
+These are LLM Wikis (Karpathy-style knowledge vaults). You can work with one from
+any session — you need not be inside its directory. The `use-llm-wiki` skill
+automates the steps below; the steps are here so any session can do it directly:
+
+- **Query** — when a question relates to one of these areas, read that vault's
+  `CLAUDE.md`, then follow its read protocol (`_hot.md` → `index.md` →
+  sub-indexes → ≤5 pages) using absolute paths, and answer with citations.
+- **Ingest** — when asked to add a source to a vault, read its `CLAUDE.md` and
+  follow its Ingest workflow against its absolute paths. The vault's hooks won't
+  fire from this session, so afterward sync it:
+  `CLAUDE_PROJECT_DIR=<path> bash <path>/.claude/hooks/sync-wiki.sh` (if present).
+
+<!-- END: create-llm-wiki registry -->

@@ -1,0 +1,14 @@
+{
+  "name": "personal-skills",
+  "owner": {
+    "name": "Quentin Riffard"
+  },
+  "plugins": [
+    {
+      "name": "llm-wiki",
+      "source": "./plugins/llm-wiki",
+      "version": "1.0.0",
+      "description": "Bootstrap and operate Karpathy-style LLM Wikis: create-llm-wiki scaffolds a new vault; use-llm-wiki ingests into / queries an existing vault from anywhere."
+    }
+  ]
+}

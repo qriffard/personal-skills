@@ -1,0 +1,35 @@
+# Using this vault in Obsidian
+
+This wiki is plain markdown with `[[wikilinks]]` and YAML frontmatter, so it
+works as an [Obsidian](https://obsidian.md) vault out of the box. You browse and
+explore here; Claude writes and maintains the content (see `CLAUDE.md`).
+
+## Open it
+- Obsidian → **Open folder as vault** → select this directory (`{{TOPIC}}`).
+- Start at **`index.md`** (the master index). `_hot.md` is the current working
+  set (created after the first ingest); pages live in `wiki/`; captured sources
+  in `raw/`. Files prefixed with `_` sort to the top of the file list.
+
+## Visualize
+- **Graph view** (left ribbon, or `Ctrl/Cmd-G`) — see how pages connect; spot
+  hub pages and orphans (pages with no links). The best view of the wiki's shape.
+- **Local graph** + the **Backlinks** pane — what links to the page you're on.
+- **Outline** and the **Tags** pane — navigate within and across pages.
+
+## Get sources in faster
+- **Obsidian Web Clipper** (browser extension) turns an article into markdown —
+  drop clips into `raw/`, then ask Claude to ingest. (Or just paste the link to
+  Claude and let `use-llm-wiki` capture it for you.)
+- **Images** (only if you ingest them): Settings → *Files and links* → set
+  *Attachment folder path* to `raw/assets/`, and bind a hotkey to *Download
+  attachments for current file* so clipped images land on disk.
+
+## Optional plugins
+- **Dataview** — query page frontmatter (`tags`, `date`, `sources`) into dynamic
+  tables and lists. Pairs with the frontmatter Claude writes on every page.
+- **Marp** — generate slide decks straight from wiki pages.
+
+## Workflow
+Obsidian is the IDE, Claude is the programmer, the wiki is the codebase: read and
+explore here; let Claude do the writing, cross-referencing, and bookkeeping. Hand
+edits are fine — just tell Claude so it keeps the index and links consistent.

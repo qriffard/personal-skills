@@ -1,0 +1,9 @@
+{
+  "name": "llm-wiki",
+  "version": "1.0.0",
+  "description": "Create and operate Karpathy-style LLM Wikis — a persistent, compounding markdown knowledge base the LLM builds and maintains from curated sources. Bundles create-llm-wiki (scaffold a new vault) and use-llm-wiki (ingest into / query an existing vault from any session).",
+  "author": {
+    "name": "Quentin Riffard"
+  },
+  "keywords": ["llm-wiki", "knowledge-base", "second-brain", "obsidian", "karpathy"]
+}

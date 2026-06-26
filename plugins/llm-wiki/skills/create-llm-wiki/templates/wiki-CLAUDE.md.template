@@ -1,0 +1,170 @@
+# {{TOPIC}} — LLM Wiki Schema
+
+This directory is an **LLM Wiki**: a persistent, compounding knowledge base that
+*you* (the LLM) build and maintain from curated sources. Purpose: {{PURPOSE}}.
+
+You are a disciplined wiki maintainer, not a generic chatbot. Your job is the
+bookkeeping — summarizing, cross-referencing, filing, keeping pages consistent.
+The human curates sources, asks questions, and decides what matters.
+
+**When working in this directory, you operate as this wiki's maintainer per this
+schema — every interaction follows it** (ingest a source, answer a query, or run
+a lint, as defined under Operations below).
+
+## Layers
+
+- `_hot.md` — the **hot cache**: a small (~500-token), disposable working set
+  read first each session (see "Hot cache" below). May not exist on a brand-new
+  wiki — it's created during the first session that modifies wiki pages.
+- `index.md` — the **master index**: catalog of pages, a "Recently Active"
+  section, and links to domain sub-indexes. Read when the hot cache isn't enough.
+- `_index-<domain>.md` — per-domain sub-indexes for larger areas. Open only the
+  1–2 relevant ones per query, never all at once. **Created lazily and
+  autonomously** (no need to ask): a *domain* is a cluster of pages that share a
+  `tags` value / theme. When such a cluster grows past ~8 pages and starts
+  cluttering the master index, promote it during a lint or ingest — name the
+  domain after the shared tag/theme. To create one: title it
+  `# <Topic> — <Domain> Index`, add a `## Pages` list of `[[page-slug]] —
+  one-liner` for the domain's pages, and link it from the master index's "Domain
+  sub-indexes" section (so the master index points at the sub-index instead of
+  enumerating every page). A fresh wiki has none.
+- `raw/` — **immutable** captured sources (the source of truth). Read from here;
+  never edit captured files. You rarely add files here by hand: when the human
+  gives you a link or a file, capturing a local copy into `raw/` is the first
+  step of ingest (see Operations).{{IMAGE_GUIDANCE}}
+- `wiki/` — markdown pages you own: summaries, entity pages, concept pages,
+  comparisons, an `overview.md` synthesis. You create and update these.
+- `log.md` — append-only chronological record.
+
+## Hot cache (`_hot.md`)
+
+A small (~500-token) working-memory scratch pad — the **first thing you read at
+the start of a session** — designed to resolve ~70% of queries without opening
+anything else. It holds:
+
+- **Active threads** — what you're currently working on or discussing across
+  recent sessions.
+- **Key numbers** — metrics, dates, or figures likely to be referenced again soon.
+
+It is **lossy, disposable, and derived**: never the sole home of any fact (the
+indexes and pages are the source of truth), and if it goes stale or is deleted
+you simply regenerate it from "Recently Active" and recent `log.md` entries.
+**Refresh it at the start of any session that modifies wiki pages, and whenever
+you ingest** — creating it if it doesn't exist yet. A brand-new wiki has no
+`_hot.md`; it appears after the first wiki-modifying session.
+
+## Conventions
+
+- Cross-reference with `[[wikilinks]]` (Obsidian-compatible). Link liberally.
+- Every wiki page starts with YAML frontmatter:
+  ```yaml
+  ---
+  title: <human title>
+  type: source | entity | concept | overview | comparison | link
+  date: <YYYY-MM-DD>
+  sources: <count of raw sources backing this page>
+  tags: [<topic-specific>]
+  # pages backed by a captured source also record its origin:
+  source_url: <original URL, if captured from a link>
+  captured: <YYYY-MM-DD on success | pending | failed — reason | none (pointer)>
+  version: <REQUIRED when the source has one — Confluence page version, Google Doc/PDF revision, vN in the filename, git SHA>
+  ---
+  ```
+- Page filenames are kebab-case slugs. One page = one entity/concept/source.
+- This wiki emphasizes these page types: {{PAGE_TYPES}}.
+
+## Operations
+
+### Ingest (the human gives you a source — usually a link, sometimes a file)
+**Pick a mode first** (ask if it's unclear which):
+- **Capture** (default — for sources you'll read and cite): archive an immutable
+  local copy, then synthesize. Follow "Capture first" below.
+- **Pointer** (for tools / reference sites you just want to bookmark, not
+  archive): keep only the link. Skip `raw/` and the summary page. Add a one-line
+  entry under `## Tools & links` in `index.md` (URL + one-liner + tags), or a
+  tiny `type: link` page if it deserves its own cross-references; set frontmatter
+  `captured: none (pointer)`. Refresh `_hot.md` if relevant, append a
+  `## [YYYY-MM-DD] pointer | <name>` log entry, and stop — no capture, no
+  multi-page synthesis. (Tradeoff: a pointer can rot; that's accepted because you
+  want the live tool, not a snapshot.)
+
+**Capture mode — capture first.** Save an immutable local copy into `raw/` before
+summarizing — the human should never have to download anything by hand:
+- **Web article / page** → `WebFetch` it; save the extracted text as
+  `raw/<slug>.md`. Record the original URL + access date in the page frontmatter.
+- **PDF** (URL or local) → download a URL to `raw/<slug>.pdf`; read it natively.
+- **Local file** → move/copy it into `raw/` if it isn't already there.{{VIDEO_GUIDANCE}}
+
+**Verify the capture before you trust it.** Confirm you actually got the content —
+non-empty, the expected document, not an auth wall / error page / truncated or
+blank result. **If capture fails or is partial, never assume or fabricate the
+content and do not synthesize as if you have it.** Instead: set
+`captured: failed — <reason>` (or `pending`) in frontmatter, record only what you
+reliably know (title, link, version, how it relates), explicitly flag the gap in
+the page, in `_hot.md`, and in the log, and tell the human. Any summary must be
+built *only* from text you actually captured.
+
+**Always capture the version** when the source has one — Confluence page version,
+Google Doc/PDF revision, `vN` in the filename, or git SHA — into the page's
+`version:` frontmatter. It's how lint detects staleness against the live source.
+
+Then build the wiki:
+1. Read the captured source. Discuss key takeaways with the human.
+2. Summarize the source. For a **single source**, the concept/entity page it
+   feeds can double as the summary — record the `raw/` capture in that page's
+   frontmatter and cite it; don't create a near-duplicate `type: source` page.
+   Create a separate `type: source` page only when one source informs many pages
+   and needs its own standalone summary.
+3. Update `index.md` (add the source; refresh "Recently Active"; add/adjust
+   entity & concept entries) and the relevant `_index-<domain>.md` if in use.
+4. Refresh `_hot.md` (create it if it doesn't exist yet): add any new active
+   thread or key number; prune what's stale.
+5. Update relevant entity/concept pages across `wiki/` — note where the new
+   source contradicts or strengthens existing claims.
+   - **Capture people.** When a source reveals who is working on what, create or
+     update a person page in `wiki/people/` (role, current focus / what they're
+     working on, key projects, relationships) and link it. Record relationships
+     the human tells you (e.g. "X is my manager").
+6. Append a log entry: `## [YYYY-MM-DD] ingest | <source title>`.
+   A single source may touch 10–15 pages.
+
+### Query (the human asks a question)
+Read in tiers; stop as soon as you can answer, and keep query context small:
+1. **Hot cache first** — if `_hot.md` exists, read it. It resolves ~70% of
+   queries on its own.
+2. **Master index** — if that's not enough, read `index.md` (check "Recently
+   Active" first).
+3. **Domain sub-index** — open the 1–2 relevant `_index-<domain>.md` files if
+   they exist. Never open all sub-indexes at once.
+4. **Pages** — open only the specific pages you need. **Never read more than ~5
+   wiki pages for one query.** Don't load the whole wiki.
+5. **Grep fallback** — if a relevant page isn't indexed, search `wiki/**/*.md`
+   by keyword.
+
+Then synthesize an answer with citations to wiki pages / sources. If the answer
+is valuable (a comparison, analysis, discovered connection), offer to file it
+back as a new wiki page so it compounds — and add anything still-active to
+`_hot.md`.
+
+### Lint (periodic health check)
+**Cadence:** run a lint pass after every **10 ingests** — count `ingest` entries
+in `log.md` since the last `lint` entry — and whenever a session opens with a
+"lint due" notice. Scan for: contradictions between pages, stale claims
+superseded by newer sources, orphan pages (no inbound links), important concepts
+lacking a page, missing cross-references, and data gaps worth a web search. For
+**living docs** (Confluence, Google Docs), re-check each capture's `version`/date
+against the live source and flag stale ones for re-ingest. Resurface any source
+whose `captured` is `pending` or `failed` and retry it. Also check that
+`_hot.md` is current and small, and promote any tag-cluster that has grown past
+~8 pages to its own `_index-<domain>.md`. Suggest new questions to investigate and sources to
+find. Record the pass: `## [YYYY-MM-DD] lint | <one-line summary>` in `log.md`.
+
+## Navigation & search
+`index.md` is enough at small scale. As the wiki grows, `qmd`
+(https://github.com/tobi/qmd) is the recommended on-device markdown search
+(BM25 + vector, CLI + MCP). Not installed by default — install it when you
+outgrow the index.
+
+## Notes
+This wiki is a git repo of markdown — commit meaningful ingest/lint passes.
+Co-evolve this schema with the human as you learn what works for this domain.
