@@ -19,6 +19,16 @@ Use `WebFetch` and extract: title, ingredients (with quantities and units), meth
 ### Pasted text / Photo / PDF
 Parse directly. Look for title, ingredients, method.
 
+## 2a. Splitting composed meals
+
+When the source describes a **composed meal** (a restaurant plate, a video recipe that combines protein + grain + sauce), split it into **separate recipe files** — one per reusable component:
+
+- A plate of chicken + rice pilaf + tzatziki → three files: `chicken-...`, `rice-...`, `tzatziki` (with `role: "condiment"`)
+- A taco plate with salsa and guacamole → at least three files
+- Only keep everything in one file when the components are genuinely inseparable (e.g. a slow-cooked stew where everything cooks together)
+
+Assign the correct `role` to each component (`main`, `base`, `side`, `sauce`, `condiment`, `dip`, etc.) so they compose correctly on meal cards.
+
 ## 3. Compute all fields
 
 **Slug** — lowercase ASCII, hyphenated, 3-6 words. Pattern: `<protein>-<key-veg>-<grain>` or `<technique>-<protein>-<flavor>`. The slug becomes the filename — do not store it inside the JSON.
