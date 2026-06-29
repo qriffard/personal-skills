@@ -25,13 +25,6 @@ reading transcripts:
 python <SKILL_DIR>/scripts/audit.py
 ```
 
-Options:
-- `--sessions N` — analyze N most recent sessions (default: 10)
-- `--config-only` — skip session analysis
-- `--sessions-only` — skip config audit
-- `--transcripts DIR` — add extra transcript directories to scan
-- `--json` — output raw JSON instead of formatted report
-
 The script automatically finds:
 - `~/.claude/CLAUDE.md` and project-level CLAUDE.md files
 - Skills in `~/.cursor/skills/` and `~/.claude/skills/`
@@ -47,6 +40,15 @@ The script automatically finds:
 4. If config files are flagged as bloated, offer to review them and suggest
    specific lines to cut (ask: "would removing this cause a mistake?").
 5. If session anti-patterns are found, suggest workflow adjustments.
+
+## Options
+
+- `--sessions N` — analyze N most recent sessions (default: 10)
+- `--config-only` — skip session and skill analysis
+- `--sessions-only` — skip config and skill analysis
+- `--skills-only` — only run skill audit
+- `--transcripts DIR` — add extra transcript directories to scan
+- `--json` — output raw JSON instead of formatted report
 
 ## Scoring rubric
 
@@ -74,6 +76,32 @@ The script automatically finds:
 | -1 | No subagent usage in long sessions (>30 avg msgs) |
 | -1 | ≥30% sessions classified as cheap (Haiku-tier) |
 | -2 | ≥50% sessions classified as cheap (Haiku-tier) |
+
+### Skill Health (out of 10)
+
+| Deduction | Condition |
+|-----------|-----------|
+| -1 | >2 dead user-owned skills (never triggered in any transcript) |
+| -2 | >5 dead user-owned skills |
+| -3 | >50% of user-owned skills dead |
+| -1 per (max -2) | Duplicate skills across sources |
+| -1 | Any trigger issues (missing/vague/bloated descriptions) |
+| -2 | >5 trigger issues |
+| -1 | Any model-fit issues |
+| -2 | >3 model-fit issues |
+
+#### What it checks
+
+- **Dead skills**: user-owned skills never read in any session transcript
+- **Duplicates**: same skill name provided by different sources (e.g. both
+  in `~/.claude/skills/` and from a plugin)
+- **Trigger issues**: missing description (will never fire), description
+  <30 chars (too vague), description >200 tokens (bloated, wastes context)
+- **Model-fit issues**:
+  - Skills with scripts but `disable-model-invocation: false` — the model
+    wastes tokens reasoning about what the script already does
+  - Skills >300 lines with no scripts — large prompt-only skills are
+    token-expensive; consider extracting logic into a script
 
 ### Model-Level Fit
 

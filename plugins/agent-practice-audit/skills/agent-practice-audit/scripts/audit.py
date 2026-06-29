@@ -18,7 +18,7 @@ import json
 import os
 import re
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 
@@ -137,6 +137,270 @@ def audit_config() -> dict:
                 results["mcp_servers"] += len(servers)
             except (json.JSONDecodeError, KeyError):
                 pass
+
+    return results
+
+
+def _parse_frontmatter(text: str) -> dict:
+    """Extract YAML frontmatter from a SKILL.md file."""
+    m = re.match(r"^---\s*\n(.*?)\n---", text, re.DOTALL)
+    if not m:
+        return {}
+    try:
+        import yaml
+        return yaml.safe_load(m.group(1)) or {}
+    except Exception:
+        meta = {}
+        for line in m.group(1).splitlines():
+            if ":" in line:
+                k, _, v = line.partition(":")
+                meta[k.strip()] = v.strip().strip("'\"")
+        return meta
+
+
+def _has_script(skill_dir: Path) -> bool:
+    """Check if a skill directory contains executable scripts."""
+    scripts_dir = skill_dir / "scripts"
+    if scripts_dir.is_dir() and any(scripts_dir.iterdir()):
+        return True
+    for ext in ("*.py", "*.sh", "*.bash", "*.js", "*.ts"):
+        if list(skill_dir.rglob(ext)):
+            return True
+    return False
+
+
+def audit_skills(transcript_dirs: list[str] | None = None) -> dict:
+    """Deep audit of all installed skills: triggers, usage, model fit, duplicates."""
+    results = {
+        "total": 0,
+        "skills": [],
+        "dead_skills": [],
+        "duplicate_groups": [],
+        "trigger_issues": [],
+        "model_fit_issues": [],
+        "issues": [],
+    }
+
+    # 1. Inventory all skills
+    skill_search_dirs = [
+        HOME / ".claude" / "skills",
+        HOME / ".cursor" / "skills",
+        HOME / ".claude" / "plugins" / "cache",
+        HOME / ".cursor" / "plugins" / "cache",
+    ]
+
+    all_skills = []
+    seen_names: dict[str, list[dict]] = defaultdict(list)
+    # Track the latest version of each cached plugin skill to avoid
+    # counting multiple cached versions as duplicates.
+    cache_dedup: dict[str, dict] = {}
+
+    for base in skill_search_dirs:
+        if not base.exists():
+            continue
+        for sm in base.rglob("SKILL.md"):
+            path_str = str(sm)
+            # Skip marketplace source repos — only count installed/cached copies
+            if "marketplaces" in path_str:
+                continue
+
+            text = sm.read_text(errors="replace")
+            meta = _parse_frontmatter(text)
+            lines = len(text.splitlines())
+            name = meta.get("name", sm.parent.name)
+            desc = meta.get("description", "")
+            has_scripts = _has_script(sm.parent)
+            disable_model = meta.get("disable-model-invocation", False)
+
+            # Determine source: user-owned (in ~/.claude/skills or
+            # ~/.cursor/skills) vs plugin-provided (in plugins/cache)
+            is_plugin = "plugins/cache" in path_str
+            # For plugin-cached skills, deduplicate by (marketplace, plugin, skill)
+            # keeping only the most recent version path
+            if is_plugin:
+                # key = marketplace/plugin/skillname
+                parts = Path(path_str).parts
+                try:
+                    ci = parts.index("cache")
+                    key = f"{parts[ci+1]}/{parts[ci+2]}/{name}"
+                except (ValueError, IndexError):
+                    key = name
+                existing = cache_dedup.get(key)
+                if existing:
+                    # Keep whichever has the newer mtime
+                    if sm.stat().st_mtime > Path(existing["path"]).stat().st_mtime:
+                        cache_dedup[key] = None  # will be replaced below
+                    else:
+                        continue
+                cache_dedup[key] = {"placeholder": True}  # filled below
+
+            entry = {
+                "name": name,
+                "path": path_str,
+                "lines": lines,
+                "description": desc,
+                "desc_tokens": estimate_tokens(desc) if desc else 0,
+                "disable_model_invocation": bool(disable_model),
+                "has_scripts": has_scripts,
+                "is_user_owned": not is_plugin,
+                "source": "user" if not is_plugin else "plugin",
+            }
+
+            if is_plugin:
+                parts = Path(path_str).parts
+                try:
+                    ci = parts.index("cache")
+                    key = f"{parts[ci+1]}/{parts[ci+2]}/{name}"
+                except (ValueError, IndexError):
+                    key = name
+                cache_dedup[key] = entry
+            else:
+                all_skills.append(entry)
+                seen_names[name].append(entry)
+
+    # Add deduplicated plugin skills
+    for entry in cache_dedup.values():
+        if isinstance(entry, dict) and "name" in entry:
+            all_skills.append(entry)
+            seen_names[entry["name"]].append(entry)
+
+    results["total"] = len(all_skills)
+
+    # 2. Cross-reference with transcript usage
+    skill_reads = Counter()
+    search_dirs = list(TRANSCRIPT_DIRS)
+    if transcript_dirs:
+        search_dirs.extend(Path(d) for d in transcript_dirs)
+
+    for base in search_dirs:
+        if not base.exists():
+            continue
+        for jsonl in base.rglob("*.jsonl"):
+            if "agent-transcripts" not in str(jsonl):
+                continue
+            try:
+                with open(jsonl) as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            msg = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        for block in msg.get("message", {}).get("content", []):
+                            if not isinstance(block, dict):
+                                continue
+                            if (block.get("type") == "tool_use"
+                                    and block.get("name") == "Read"):
+                                path = block.get("input", {}).get("path", "")
+                                if "SKILL.md" in path:
+                                    parts = Path(path).parts
+                                    for i, p in enumerate(parts):
+                                        if p == "skills" and i + 1 < len(parts):
+                                            skill_reads[parts[i + 1]] += 1
+                                            break
+            except Exception:
+                continue
+
+    # 3. Analyze each skill
+    for s in all_skills:
+        s["usage_count"] = skill_reads.get(s["name"], 0)
+        results["skills"].append({
+            "name": s["name"],
+            "lines": s["lines"],
+            "desc_tokens": s["desc_tokens"],
+            "disable_model": s["disable_model_invocation"],
+            "has_scripts": s["has_scripts"],
+            "usage_count": s["usage_count"],
+        })
+
+    # 4. Dead skills: user-owned skills never read in any transcript
+    # Only flag user-owned skills as dead — plugin skills are available but
+    # not necessarily expected to be used regularly.
+    for s in all_skills:
+        if s["usage_count"] == 0 and s.get("is_user_owned", False):
+            results["dead_skills"].append(s["name"])
+
+    if results["dead_skills"]:
+        n = len(results["dead_skills"])
+        names = ", ".join(results["dead_skills"][:8])
+        suffix = f" (+{n - 8} more)" if n > 8 else ""
+        results["issues"].append(
+            f"{n} user-owned skill(s) never triggered: {names}{suffix}"
+        )
+
+    # 5. Duplicate skills (same name provided by different sources)
+    for name, entries in seen_names.items():
+        if len(entries) > 1:
+            # Deduplicate paths that differ only by cache version
+            unique_sources = set()
+            for e in entries:
+                p = e["path"]
+                if "plugins/cache" in p:
+                    parts = Path(p).parts
+                    try:
+                        ci = parts.index("cache")
+                        unique_sources.add(f"{parts[ci+1]}/{parts[ci+2]}")
+                    except (ValueError, IndexError):
+                        unique_sources.add(p)
+                else:
+                    unique_sources.add(p)
+            if len(unique_sources) > 1:
+                results["duplicate_groups"].append({
+                    "name": name,
+                    "locations": list(unique_sources),
+                })
+
+    if results["duplicate_groups"]:
+        n = len(results["duplicate_groups"])
+        names = ", ".join(g["name"] for g in results["duplicate_groups"][:5])
+        results["issues"].append(
+            f"{n} skill(s) duplicated across sources: {names}"
+        )
+
+    # 6. Trigger / description issues
+    for s in all_skills:
+        desc = s["description"]
+        if not desc:
+            results["trigger_issues"].append(
+                f"{s['name']}: missing description (trigger will never fire)"
+            )
+        elif len(desc) < 30:
+            results["trigger_issues"].append(
+                f"{s['name']}: description too short ({len(desc)} chars) — "
+                f"vague triggers cause false positives or missed activations"
+            )
+        elif estimate_tokens(desc) > 200:
+            results["trigger_issues"].append(
+                f"{s['name']}: description is {estimate_tokens(desc)} tokens — "
+                f"bloated trigger descriptions waste context on every turn"
+            )
+
+    if results["trigger_issues"]:
+        results["issues"].append(
+            f"{len(results['trigger_issues'])} skill trigger issue(s) found"
+        )
+
+    # 7. Model-fit issues: skills with scripts that should use disable-model-invocation
+    for s in all_skills:
+        if s["has_scripts"] and not s["disable_model_invocation"]:
+            results["model_fit_issues"].append(
+                f"{s['name']}: has scripts but disable-model-invocation is false — "
+                f"if the script does the heavy work, set this flag to avoid "
+                f"burning tokens on model reasoning"
+            )
+        if s["lines"] > 300 and not s["has_scripts"]:
+            results["model_fit_issues"].append(
+                f"{s['name']}: {s['lines']} lines with no scripts — "
+                f"large prompt-only skills are token-expensive; "
+                f"consider extracting logic into a script"
+            )
+
+    if results["model_fit_issues"]:
+        results["issues"].append(
+            f"{len(results['model_fit_issues'])} model-fit issue(s) in skills"
+        )
 
     return results
 
@@ -402,9 +666,11 @@ def audit_sessions(max_sessions: int, extra_dirs: list[str] | None = None) -> di
     return results
 
 
-def score(config_results: dict, session_results: dict | None) -> dict:
+def score(config_results: dict, session_results: dict | None,
+          skill_results: dict | None = None) -> dict:
     config_score = 10
     session_score = 10
+    skill_score = 10
 
     # Config deductions
     for cm in config_results["claude_md"]:
@@ -466,13 +732,44 @@ def score(config_results: dict, session_results: dict | None) -> dict:
 
         session_score = max(0, session_score)
 
+    # Skill deductions
+    if skill_results:
+        total = skill_results.get("total", 0)
+        dead = len(skill_results.get("dead_skills", []))
+        dupes = len(skill_results.get("duplicate_groups", []))
+        trigger_issues = len(skill_results.get("trigger_issues", []))
+        model_fit = len(skill_results.get("model_fit_issues", []))
+
+        if total > 0 and dead / total > 0.5:
+            skill_score -= 3
+        elif dead > 5:
+            skill_score -= 2
+        elif dead > 2:
+            skill_score -= 1
+
+        skill_score -= min(dupes, 2)
+
+        if trigger_issues > 5:
+            skill_score -= 2
+        elif trigger_issues > 0:
+            skill_score -= 1
+
+        if model_fit > 3:
+            skill_score -= 2
+        elif model_fit > 0:
+            skill_score -= 1
+
+        skill_score = max(0, skill_score)
+
     return {
         "config_score": config_score,
         "session_score": session_score if session_results else None,
+        "skill_score": skill_score if skill_results else None,
     }
 
 
-def format_report(config: dict, sessions: dict | None, scores: dict) -> str:
+def format_report(config: dict, sessions: dict | None, scores: dict,
+                  skills: dict | None = None) -> str:
     lines = ["# Agent Practice Audit", ""]
 
     # Config
@@ -514,8 +811,53 @@ def format_report(config: dict, sessions: dict | None, scores: dict) -> str:
             lines.append(f"- **Issue**: {issue}")
         lines.append("")
 
+    # Skills
+    if skills:
+        lines.append(f"## Skill Health: {scores['skill_score']}/10")
+        lines.append(f"  ({skills['total']} skills installed)")
+        lines.append("")
+
+        dead = skills.get("dead_skills", [])
+        if dead:
+            names = ", ".join(dead[:10])
+            suffix = f" (+{len(dead) - 10} more)" if len(dead) > 10 else ""
+            lines.append(f"- Dead skills (never triggered): {names}{suffix}")
+
+        dupes = skills.get("duplicate_groups", [])
+        if dupes:
+            for g in dupes[:5]:
+                lines.append(f"- Duplicate: **{g['name']}** in {len(g['locations'])} sources")
+
+        trigger = skills.get("trigger_issues", [])
+        if trigger:
+            lines.append(f"- Trigger issues: {len(trigger)}")
+            for t in trigger[:5]:
+                lines.append(f"  - {t}")
+
+        model_fit = skills.get("model_fit_issues", [])
+        if model_fit:
+            lines.append(f"- Model-fit issues: {len(model_fit)}")
+            for m in model_fit[:5]:
+                lines.append(f"  - {m}")
+
+        # Top used skills
+        used = sorted(
+            [s for s in skills["skills"] if s["usage_count"] > 0],
+            key=lambda x: x["usage_count"], reverse=True,
+        )
+        if used:
+            lines.append(f"- Most used: " + ", ".join(
+                f"{s['name']}({s['usage_count']})" for s in used[:5]
+            ))
+
+        for issue in skills["issues"]:
+            lines.append(f"- **Issue**: {issue}")
+        lines.append("")
+
     # Top issues
     all_issues = config["issues"] + (sessions["issues"] if sessions else [])
+    if skills:
+        all_issues += skills["issues"]
     if all_issues:
         lines.append("## Top Recommendations")
         lines.append("")
@@ -532,8 +874,12 @@ def main():
     parser = argparse.ArgumentParser(description="Agent practice audit")
     parser.add_argument("--sessions", type=int, default=10,
                         help="Number of recent sessions to analyze")
-    parser.add_argument("--config-only", action="store_true")
-    parser.add_argument("--sessions-only", action="store_true")
+    parser.add_argument("--config-only", action="store_true",
+                        help="Skip session and skill analysis")
+    parser.add_argument("--sessions-only", action="store_true",
+                        help="Skip config and skill analysis")
+    parser.add_argument("--skills-only", action="store_true",
+                        help="Only run skill audit")
     parser.add_argument("--transcripts", nargs="*",
                         help="Additional transcript directories")
     parser.add_argument("--json", action="store_true",
@@ -542,30 +888,34 @@ def main():
 
     config_results = None
     session_results = None
+    skill_results = None
+    empty_config = {"claude_md": [], "skills": [], "mcp_servers": 0, "issues": []}
 
-    if not args.sessions_only:
+    if not args.sessions_only and not args.skills_only:
         config_results = audit_config()
 
-    if not args.config_only:
+    if not args.config_only and not args.skills_only:
         session_results = audit_sessions(args.sessions, args.transcripts)
 
-    scores = score(
-        config_results or {"claude_md": [], "skills": [], "mcp_servers": 0, "issues": []},
-        session_results,
-    )
+    if not args.config_only and not args.sessions_only:
+        skill_results = audit_skills(args.transcripts)
+
+    scores = score(config_results or empty_config, session_results, skill_results)
 
     if args.json:
         output = {
             "config": config_results,
             "sessions": session_results,
+            "skills": skill_results,
             "scores": scores,
         }
         print(json.dumps(output, indent=2))
     else:
         print(format_report(
-            config_results or {"claude_md": [], "skills": [], "mcp_servers": 0, "issues": []},
+            config_results or empty_config,
             session_results,
             scores,
+            skill_results,
         ))
 
 
