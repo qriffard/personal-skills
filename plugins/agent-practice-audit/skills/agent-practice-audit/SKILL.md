@@ -66,6 +66,7 @@ The script automatically finds:
 |-----------|-----------|
 | -2 | Any kitchen-sink session (>50 messages) |
 | -2 per session (max -4) | Multi-file edits without Plan mode |
+| -2 per session (max -4) | Jumped to code: >3 file edits, ≤1 read, no Plan mode |
 | -1 | >30% trivial shell calls |
 | -3 | >50% trivial shell calls |
 | -1 | Any repeated corrections |

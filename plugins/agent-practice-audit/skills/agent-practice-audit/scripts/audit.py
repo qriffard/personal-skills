@@ -169,7 +169,10 @@ def analyze_session(jsonl_path: Path) -> dict:
         "shell_calls": 0,
         "trivial_shell_calls": 0,
         "files_edited": 0,
+        "reads_before_first_edit": 0,
+        "first_edit_tool_index": None,
         "plan_mode_used": False,
+        "jumped_to_code": False,
         "subagents_used": 0,
         "repeated_corrections": 0,
         "unique_tools": set(),
@@ -195,6 +198,10 @@ def analyze_session(jsonl_path: Path) -> dict:
     result["message_count"] = len(messages)
     user_texts = []
 
+    EXPLORE_TOOLS = {"Read", "Glob", "Grep", "WebSearch", "WebFetch"}
+    EDIT_TOOLS = {"Write", "StrReplace", "EditNotebook"}
+    tool_call_index = 0
+
     for msg in messages:
         role = msg.get("role", "")
         content = msg.get("message", {}).get("content", [])
@@ -214,6 +221,11 @@ def analyze_session(jsonl_path: Path) -> dict:
                     tool_name = block.get("name", "")
                     tool_input = block.get("input", {})
                     result["unique_tools"].add(tool_name)
+                    tool_call_index += 1
+
+                    if tool_name in EXPLORE_TOOLS:
+                        if result["first_edit_tool_index"] is None:
+                            result["reads_before_first_edit"] += 1
 
                     if tool_name == "Shell":
                         result["shell_calls"] += 1
@@ -221,8 +233,10 @@ def analyze_session(jsonl_path: Path) -> dict:
                         if TRIVIAL_COMMANDS.match(cmd):
                             result["trivial_shell_calls"] += 1
 
-                    elif tool_name in ("Write", "StrReplace", "EditNotebook"):
+                    elif tool_name in EDIT_TOOLS:
                         result["files_edited"] += 1
+                        if result["first_edit_tool_index"] is None:
+                            result["first_edit_tool_index"] = tool_call_index
 
                     elif tool_name == "SwitchMode":
                         if tool_input.get("target_mode_id") == "plan":
@@ -250,6 +264,12 @@ def analyze_session(jsonl_path: Path) -> dict:
             if correction_streak >= 2:
                 result["repeated_corrections"] += 1
             correction_streak = 0
+
+    # Detect "jumped to code" — editing multiple files with minimal exploration
+    if (result["files_edited"] > 3
+            and result["reads_before_first_edit"] <= 1
+            and not result["plan_mode_used"]):
+        result["jumped_to_code"] = True
 
     # Classify complexity tier
     n_tools = len(result["unique_tools"])
@@ -293,6 +313,8 @@ def audit_sessions(max_sessions: int, extra_dirs: list[str] | None = None) -> di
             "messages": analysis["message_count"],
             "files_edited": analysis["files_edited"],
             "plan_mode": analysis["plan_mode_used"],
+            "jumped_to_code": analysis["jumped_to_code"],
+            "reads_before_edit": analysis["reads_before_first_edit"],
             "shell_calls": analysis["shell_calls"],
             "trivial_shell": analysis["trivial_shell_calls"],
             "subagents": analysis["subagents_used"],
@@ -314,6 +336,7 @@ def audit_sessions(max_sessions: int, extra_dirs: list[str] | None = None) -> di
     kitchen_sink = sum(1 for s in all_sessions if s["message_count"] > 50)
 
     tier_counts = Counter(s["complexity_tier"] for s in all_sessions)
+    jumped_to_code = sum(1 for s in all_sessions if s["jumped_to_code"])
 
     results["summary"] = {
         "avg_messages_per_session": round(total_messages / len(all_sessions), 1),
@@ -321,6 +344,7 @@ def audit_sessions(max_sessions: int, extra_dirs: list[str] | None = None) -> di
         "trivial_shell_pct": round(100 * total_trivial / total_shell, 1) if total_shell else 0,
         "plan_mode_usage": f"{plan_used}/{len(all_sessions)} sessions",
         "multi_file_without_plan": f"{multi_file_no_plan}/{multi_file_sessions} multi-file sessions",
+        "jumped_to_code": jumped_to_code,
         "subagents_used": total_subagents,
         "repeated_corrections": total_corrections,
         "kitchen_sink_sessions": kitchen_sink,
@@ -349,6 +373,11 @@ def audit_sessions(max_sessions: int, extra_dirs: list[str] | None = None) -> di
         results["issues"].append(
             f"{total_corrections} instance(s) of repeated corrections — "
             f"consider /clear and rewriting the prompt"
+        )
+    if jumped_to_code > 0:
+        results["issues"].append(
+            f"{jumped_to_code} session(s) jumped straight to editing (>3 files) "
+            f"with ≤1 read and no Plan mode — use Explore → Plan → Code"
         )
     n_cheap = tier_counts.get("cheap", 0)
     n_total = len(all_sessions)
@@ -402,13 +431,16 @@ def score(config_results: dict, session_results: dict | None) -> dict:
             session_score -= 2
 
         multi_no_plan = summary.get("multi_file_without_plan", "0/0")
-        if multi_no_plan.startswith("0/") is False and not multi_no_plan.startswith("0/"):
-            try:
-                n = int(multi_no_plan.split("/")[0])
-                if n > 0:
-                    session_score -= min(n * 2, 4)
-            except ValueError:
-                pass
+        try:
+            n = int(multi_no_plan.split("/")[0])
+            if n > 0:
+                session_score -= min(n * 2, 4)
+        except ValueError:
+            pass
+
+        jumped = summary.get("jumped_to_code", 0)
+        if jumped > 0:
+            session_score -= min(jumped * 2, 4)
 
         trivial_pct = summary.get("trivial_shell_pct", 0)
         if trivial_pct > 50:
@@ -468,6 +500,7 @@ def format_report(config: dict, sessions: dict | None, scores: dict) -> str:
         lines.append(f"- Avg session length: {s['avg_messages_per_session']} messages")
         lines.append(f"- Plan mode usage: {s['plan_mode_usage']}")
         lines.append(f"- Multi-file sessions without plan: {s['multi_file_without_plan']}")
+        lines.append(f"- Jumped to code (no explore/plan): {s.get('jumped_to_code', 0)}")
         lines.append(f"- Shell calls: {s['total_shell_calls']} total, "
                       f"{s['trivial_shell_pct']}% trivial")
         lines.append(f"- Subagents used: {s['subagents_used']}")
