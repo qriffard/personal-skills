@@ -86,13 +86,20 @@ enabled — `raw/assets/`, so git tracks the empty directories.
 
 **Always create the `scripts/` directory** with at least these extraction scripts
 (copy them from `templates/scripts/`):
-- `extract-arxiv.py` — arXiv LaTeX source to markdown with figures (requires pandoc)
+- `extract-arxiv.py` — arXiv LaTeX source to markdown with figures. Uses
+  `pylatexenc` for LaTeX→text conversion (not pandoc, which hangs on complex
+  papers with packages like `tabularray`, `algorithm2e`). Falls back to pandoc
+  only for docx/odt/rtf sources. Requires: `pylatexenc`, `pandoc`.
 - `extract-pdf.py` — PDF to markdown (tries pymupdf4llm, pymupdf, pdftotext)
 - `extract-youtube.py` — YouTube URL or VTT/SRT to timestamped markdown
 - `outline.py` — extracts headings with line numbers from any markdown file
 Make all scripts executable (`chmod +x`). These support the two-phase ingest
 protocol described in the wiki's CLAUDE.md — the Fetch phase runs these scripts
 to extract content without consuming main-model tokens.
+
+After scaffolding, verify that `pylatexenc` is installed (`pip install
+pylatexenc`) — it is required by `extract-arxiv.py` and is not a standard
+library.
 
 Always create `.gitattributes` from `templates/gitattributes.template` (union-merge
 for `log.md` so the append-only log doesn't conflict across machines).

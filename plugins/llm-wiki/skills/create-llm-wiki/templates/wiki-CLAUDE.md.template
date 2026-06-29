@@ -117,14 +117,17 @@ context window. Use extraction scripts in `scripts/` whenever possible.
 Other sources:
 - **arXiv paper** → always use `extract-arxiv.py`, never the PDF extractor.
   It downloads the LaTeX source (the actual source of truth) and converts to
-  markdown via pandoc, preserving equations as `$...$` / `$$...$$`. Figures are
-  extracted into `raw/assets/<slug>/` and image references in the markdown are
-  rewritten to point there — browsable in Obsidian with linked figures.
-  Handles docx/odt/rtf sources automatically via pandoc. **If the script exits
-  with code 2**, it means the arXiv paper only has a PDF (no LaTeX or document
-  source). In that case, **ask the user** before proceeding — PDF extraction via
-  `extract-pdf.py` is lossy (equations may degrade) and costs more tokens.
-  Requires: `pandoc`.
+  markdown via `pylatexenc` (not pandoc — pandoc hangs on complex LaTeX with
+  packages like `tabularray`, `algorithm2e`). Preserves equations as `$...$` /
+  `$$...$$`, expands custom `\newcommand` macros, and converts `\section{}`
+  headings to markdown `##` before conversion. Figures are extracted into
+  `raw/assets/<slug>/` and image references rewritten to point there —
+  browsable in Obsidian with linked figures. Handles docx/odt/rtf sources
+  automatically via pandoc. **If the script exits with code 2**, it means the
+  arXiv paper only has a PDF (no LaTeX or document source). In that case,
+  **ask the user** before proceeding — PDF extraction via `extract-pdf.py` is
+  lossy (equations may degrade) and costs more tokens.
+  Requires: `pylatexenc`, `pandoc`.
 - **Web article** → `WebFetch`; save to `raw/<slug>.md`.
 - **Local file** → copy into `raw/`.{{VIDEO_GUIDANCE}}
 
