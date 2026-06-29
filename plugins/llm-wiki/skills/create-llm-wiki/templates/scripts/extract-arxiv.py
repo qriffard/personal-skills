@@ -39,6 +39,9 @@ def parse_arxiv_id(source: str) -> str:
     raise ValueError(f"Cannot parse arXiv ID from: {source}")
 
 
+DOCX_EXTENSIONS = {".doc", ".docx", ".odt", ".rtf"}
+
+
 def download_source(arxiv_id: str, dest_dir: Path) -> Path:
     """Download and extract the e-print tarball. Returns the extraction directory."""
     url = f"https://arxiv.org/e-print/{arxiv_id}"
@@ -56,21 +59,34 @@ def download_source(arxiv_id: str, dest_dir: Path) -> Path:
         with tarfile.open(tarball, "r:*") as tar:
             tar.extractall(path=extract_dir, filter="data")
     except tarfile.ReadError:
-        # Not a tarball — likely a single gzipped .tex file
+        # Not a tarball — could be a single gzipped .tex or a raw PDF/docx
         import gzip
-        with gzip.open(tarball, "rb") as gz:
-            content = gz.read()
-        single_tex = extract_dir / "main.tex"
-        single_tex.write_bytes(content)
+        try:
+            with gzip.open(tarball, "rb") as gz:
+                content = gz.read()
+        except gzip.BadGzipFile:
+            # Raw uncompressed file — copy as-is
+            content = tarball.read_bytes()
+
+        # Detect file type from magic bytes
+        if content[:5] == b"%PDF-":
+            (extract_dir / "paper.pdf").write_bytes(content)
+        elif content[:4] == b"PK\x03\x04":
+            (extract_dir / "paper.docx").write_bytes(content)
+        elif content[:4] in (b"\xd0\xcf\x11\xe0",):
+            (extract_dir / "paper.doc").write_bytes(content)
+        else:
+            # Assume it's a plain .tex file
+            (extract_dir / "main.tex").write_bytes(content)
 
     return extract_dir
 
 
-def find_main_tex(extract_dir: Path) -> Path:
-    """Find the main .tex file in the extracted source."""
+def find_main_tex(extract_dir: Path) -> Path | None:
+    """Find the main .tex file in the extracted source. Returns None if no .tex found."""
     tex_files = list(extract_dir.rglob("*.tex"))
     if not tex_files:
-        raise FileNotFoundError(f"No .tex files found in {extract_dir}")
+        return None
     if len(tex_files) == 1:
         return tex_files[0]
 
@@ -88,6 +104,21 @@ def find_main_tex(extract_dir: Path) -> Path:
 
     # Last resort: largest .tex file
     return max(tex_files, key=lambda p: p.stat().st_size)
+
+
+def detect_source_type(extract_dir: Path) -> str:
+    """Detect what kind of source the e-print contains.
+
+    Returns: 'latex', 'pdf', 'docx', or 'unknown'.
+    """
+    if list(extract_dir.rglob("*.tex")):
+        return "latex"
+    for ext in DOCX_EXTENSIONS:
+        if list(extract_dir.rglob(f"*{ext}")):
+            return "docx"
+    if list(extract_dir.rglob("*.pdf")):
+        return "pdf"
+    return "unknown"
 
 
 def fetch_metadata(arxiv_id: str) -> dict:
@@ -185,16 +216,35 @@ def rewrite_image_paths(md: str, path_map: dict[str, str]) -> str:
     return re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", replace_match, md)
 
 
-def convert_to_markdown(tex_path: Path, meta: dict, path_map: dict[str, str] | None = None) -> str:
-    """Convert LaTeX to markdown via pandoc, prepend metadata header."""
+PANDOC_INPUT_FORMATS = {
+    ".tex": "latex",
+    ".doc": "doc",
+    ".docx": "docx",
+    ".odt": "odt",
+    ".rtf": "rtf",
+}
+
+
+def convert_to_markdown(
+    source_path: Path,
+    meta: dict,
+    path_map: dict[str, str] | None = None,
+    assets_dir: Path | None = None,
+) -> str:
+    """Convert LaTeX/docx/odt/rtf to markdown via pandoc, prepend metadata header."""
+    fmt = PANDOC_INPUT_FORMATS.get(source_path.suffix.lower())
+    if not fmt:
+        raise ValueError(f"Unsupported format for pandoc: {source_path.suffix}")
+
+    media_dir = str(assets_dir) if assets_dir else "."
     pandoc_args = [
         "pandoc",
-        str(tex_path),
-        "-f", "latex",
+        str(source_path),
+        "-f", fmt,
         "-t", "markdown",
         "--wrap=none",
         "--markdown-headings=atx",
-        "--extract-media=.",
+        f"--extract-media={media_dir}",
     ]
 
     result = subprocess.run(
@@ -202,7 +252,7 @@ def convert_to_markdown(tex_path: Path, meta: dict, path_map: dict[str, str] | N
         capture_output=True,
         text=True,
         timeout=120,
-        cwd=str(tex_path.parent),
+        cwd=str(source_path.parent),
     )
 
     if result.returncode != 0:
@@ -253,14 +303,40 @@ def main():
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
         extract_dir = download_source(arxiv_id, tmpdir)
-        main_tex = find_main_tex(extract_dir)
-        print(f"Main .tex file: {main_tex.name}")
+        source_type = detect_source_type(extract_dir)
 
-        path_map = extract_figures(extract_dir, assets_dir)
-        fig_count = len(set(path_map.values()))
-        print(f"Extracted {fig_count} figure(s) → {assets_dir}/")
+        if source_type == "docx":
+            doc_file = None
+            for ext in DOCX_EXTENSIONS:
+                found = list(extract_dir.rglob(f"*{ext}"))
+                if found:
+                    doc_file = found[0]
+                    break
+            print(f"No LaTeX source — found {doc_file.suffix} document, converting via pandoc...", file=sys.stderr)
+            md = convert_to_markdown(doc_file, meta, assets_dir=assets_dir)
 
-        md = convert_to_markdown(main_tex, meta, path_map)
+        elif source_type == "pdf":
+            print("NO_LATEX_SOURCE: This arXiv paper has no LaTeX source — only a PDF.", file=sys.stderr)
+            print("To proceed, use extract-pdf.py instead.", file=sys.stderr)
+            print("Note: PDF extraction may lose equation fidelity and costs more tokens.", file=sys.stderr)
+            print("Ask the user if falling back to PDF extraction is OK.", file=sys.stderr)
+            sys.exit(2)
+
+        elif source_type == "unknown":
+            all_files = [f.name for f in extract_dir.rglob("*") if f.is_file()]
+            print(f"NO_LATEX_SOURCE: Unrecognized source format. Files found: {', '.join(all_files[:10])}", file=sys.stderr)
+            print("Ask the user how to proceed.", file=sys.stderr)
+            sys.exit(2)
+
+        else:
+            main_tex = find_main_tex(extract_dir)
+            print(f"Main .tex file: {main_tex.name}")
+
+            path_map = extract_figures(extract_dir, assets_dir)
+            fig_count = len(set(path_map.values()))
+            print(f"Extracted {fig_count} figure(s) → {assets_dir}/")
+
+            md = convert_to_markdown(main_tex, meta, path_map, assets_dir=assets_dir)
 
     output_path.write_text(md)
     print(f"Extracted {len(md):,} chars → {output_path}")
