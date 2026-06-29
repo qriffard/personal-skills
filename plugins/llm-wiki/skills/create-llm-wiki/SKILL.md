@@ -86,6 +86,7 @@ enabled — `raw/assets/`, so git tracks the empty directories.
 
 **Always create the `scripts/` directory** with at least these extraction scripts
 (copy them from `templates/scripts/`):
+- `extract-arxiv.py` — arXiv LaTeX source to markdown with figures (requires pandoc)
 - `extract-pdf.py` — PDF to markdown (tries pymupdf4llm, pymupdf, pdftotext)
 - `extract-youtube.py` — YouTube URL or VTT/SRT to timestamped markdown
 - `outline.py` — extracts headings with line numbers from any markdown file

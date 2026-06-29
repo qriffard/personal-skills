@@ -109,11 +109,18 @@ context window. Use extraction scripts in `scripts/` whenever possible.
 
 | Script | Input | Usage |
 |--------|-------|-------|
+| `extract-arxiv.py` | arXiv URL or ID | `python scripts/extract-arxiv.py <url-or-id> raw/<slug>.md` (figures go to `raw/assets/<slug>/`) |
 | `extract-pdf.py` | PDF file | `python scripts/extract-pdf.py raw/<slug>.pdf` |
 | `extract-youtube.py` | URL or VTT file | `python scripts/extract-youtube.py <url> raw/<slug>.md` |
 | `outline.py` | Any markdown file | `python scripts/outline.py raw/<slug>.md` — produces compact heading outline |
 
 Other sources:
+- **arXiv paper** → always use `extract-arxiv.py`, never the PDF extractor.
+  It downloads the LaTeX source (the actual source of truth) and converts to
+  markdown via pandoc, preserving equations as `$...$` / `$$...$$`. Figures are
+  extracted into `raw/assets/<slug>/` and image references in the markdown are
+  rewritten to point there — browsable in Obsidian with linked figures.
+  Requires: `pandoc`.
 - **Web article** → `WebFetch`; save to `raw/<slug>.md`.
 - **Local file** → copy into `raw/`.{{VIDEO_GUIDANCE}}
 
