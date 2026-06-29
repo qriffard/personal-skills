@@ -30,6 +30,27 @@ TRIVIAL_COMMANDS = re.compile(
     r"npm --version|node --version|python3? --version)"
 )
 
+# Heuristic complexity tiers based on observable session signals.
+# "frontier" = Opus / o3 territory, "standard" = Sonnet / Composer,
+# "cheap" = Haiku / fast model.  We can't read the actual model from
+# transcripts, so we infer what *should* have been used and let the
+# user compare against what they actually ran.
+COMPLEXITY_THRESHOLDS = {
+    "cheap": {
+        "max_files_edited": 2,
+        "max_messages": 10,
+        "max_unique_tools": 3,
+        "description": "Simple lookup / single-file edit — Haiku-tier model sufficient",
+    },
+    "standard": {
+        "max_files_edited": 15,
+        "max_messages": 40,
+        "max_unique_tools": 8,
+        "description": "Moderate multi-file work — Sonnet / Composer appropriate",
+    },
+    # anything above "standard" thresholds → "frontier"
+}
+
 TRANSCRIPT_DIRS = [
     HOME / ".cursor" / "projects",
     HOME / ".claude" / "projects",
@@ -151,6 +172,8 @@ def analyze_session(jsonl_path: Path) -> dict:
         "plan_mode_used": False,
         "subagents_used": 0,
         "repeated_corrections": 0,
+        "unique_tools": set(),
+        "complexity_tier": "cheap",
         "topics": [],
     }
 
@@ -190,6 +213,7 @@ def analyze_session(jsonl_path: Path) -> dict:
                 if block.get("type") == "tool_use":
                     tool_name = block.get("name", "")
                     tool_input = block.get("input", {})
+                    result["unique_tools"].add(tool_name)
 
                     if tool_name == "Shell":
                         result["shell_calls"] += 1
@@ -227,6 +251,23 @@ def analyze_session(jsonl_path: Path) -> dict:
                 result["repeated_corrections"] += 1
             correction_streak = 0
 
+    # Classify complexity tier
+    n_tools = len(result["unique_tools"])
+    cheap = COMPLEXITY_THRESHOLDS["cheap"]
+    standard = COMPLEXITY_THRESHOLDS["standard"]
+
+    if (result["files_edited"] <= cheap["max_files_edited"]
+            and result["message_count"] <= cheap["max_messages"]
+            and n_tools <= cheap["max_unique_tools"]):
+        result["complexity_tier"] = "cheap"
+    elif (result["files_edited"] <= standard["max_files_edited"]
+            and result["message_count"] <= standard["max_messages"]
+            and n_tools <= standard["max_unique_tools"]):
+        result["complexity_tier"] = "standard"
+    else:
+        result["complexity_tier"] = "frontier"
+
+    result["unique_tools"] = list(result["unique_tools"])
     return result
 
 
@@ -255,6 +296,7 @@ def audit_sessions(max_sessions: int, extra_dirs: list[str] | None = None) -> di
             "shell_calls": analysis["shell_calls"],
             "trivial_shell": analysis["trivial_shell_calls"],
             "subagents": analysis["subagents_used"],
+            "complexity_tier": analysis["complexity_tier"],
         })
 
     total_messages = sum(s["message_count"] for s in all_sessions)
@@ -271,6 +313,8 @@ def audit_sessions(max_sessions: int, extra_dirs: list[str] | None = None) -> di
     total_corrections = sum(s["repeated_corrections"] for s in all_sessions)
     kitchen_sink = sum(1 for s in all_sessions if s["message_count"] > 50)
 
+    tier_counts = Counter(s["complexity_tier"] for s in all_sessions)
+
     results["summary"] = {
         "avg_messages_per_session": round(total_messages / len(all_sessions), 1),
         "total_shell_calls": total_shell,
@@ -280,6 +324,11 @@ def audit_sessions(max_sessions: int, extra_dirs: list[str] | None = None) -> di
         "subagents_used": total_subagents,
         "repeated_corrections": total_corrections,
         "kitchen_sink_sessions": kitchen_sink,
+        "complexity_tiers": {
+            "cheap": tier_counts.get("cheap", 0),
+            "standard": tier_counts.get("standard", 0),
+            "frontier": tier_counts.get("frontier", 0),
+        },
     }
 
     if kitchen_sink > 0:
@@ -301,6 +350,25 @@ def audit_sessions(max_sessions: int, extra_dirs: list[str] | None = None) -> di
             f"{total_corrections} instance(s) of repeated corrections — "
             f"consider /clear and rewriting the prompt"
         )
+    n_cheap = tier_counts.get("cheap", 0)
+    n_total = len(all_sessions)
+    if n_cheap > 0:
+        results["issues"].append(
+            f"{n_cheap}/{n_total} session(s) were simple enough for a cheap model "
+            f"(Haiku-tier) — ≤2 file edits, ≤10 messages, ≤3 tool types. "
+            f"If you ran these on Opus/Sonnet, consider downgrading for similar tasks"
+        )
+    n_frontier = tier_counts.get("frontier", 0)
+    if n_frontier > 0:
+        frontier_no_plan = sum(
+            1 for s in all_sessions
+            if s["complexity_tier"] == "frontier" and not s["plan_mode_used"]
+        )
+        if frontier_no_plan > 0:
+            results["issues"].append(
+                f"{frontier_no_plan} complex session(s) (frontier-tier) didn't use "
+                f"Plan mode — for heavy sessions consider opusplan or plan-then-execute"
+            )
 
     return results
 
@@ -356,6 +424,14 @@ def score(config_results: dict, session_results: dict | None) -> dict:
         if summary.get("subagents_used", 0) == 0 and summary.get("avg_messages_per_session", 0) > 30:
             session_score -= 1
 
+        tiers = summary.get("complexity_tiers", {})
+        total_sessions = sum(tiers.values()) or 1
+        cheap_pct = 100 * tiers.get("cheap", 0) / total_sessions
+        if cheap_pct >= 50:
+            session_score -= 2
+        elif cheap_pct >= 30:
+            session_score -= 1
+
         session_score = max(0, session_score)
 
     return {
@@ -397,6 +473,10 @@ def format_report(config: dict, sessions: dict | None, scores: dict) -> str:
         lines.append(f"- Subagents used: {s['subagents_used']}")
         lines.append(f"- Repeated corrections: {s['repeated_corrections']}")
         lines.append(f"- Kitchen-sink sessions (>50 msgs): {s['kitchen_sink_sessions']}")
+        tiers = s.get("complexity_tiers", {})
+        lines.append(f"- Model-level fit: {tiers.get('cheap',0)} cheap (Haiku ok) / "
+                      f"{tiers.get('standard',0)} standard (Sonnet) / "
+                      f"{tiers.get('frontier',0)} frontier (Opus)")
         for issue in sessions["issues"]:
             lines.append(f"- **Issue**: {issue}")
         lines.append("")

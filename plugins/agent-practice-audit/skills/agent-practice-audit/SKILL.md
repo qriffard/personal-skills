@@ -71,6 +71,22 @@ The script automatically finds:
 | -1 | Any repeated corrections |
 | -2 | >2 repeated correction instances |
 | -1 | No subagent usage in long sessions (>30 avg msgs) |
+| -1 | ≥30% sessions classified as cheap (Haiku-tier) |
+| -2 | ≥50% sessions classified as cheap (Haiku-tier) |
+
+### Model-Level Fit
+
+Each session is classified into a complexity tier based on observable signals
+(file edits, message count, unique tool types):
+
+| Tier | Criteria | Recommended model |
+|------|----------|-------------------|
+| **cheap** | ≤2 file edits, ≤10 messages, ≤3 tool types | Haiku / fast model |
+| **standard** | ≤15 file edits, ≤40 messages, ≤8 tool types | Sonnet / Composer |
+| **frontier** | Above standard thresholds | Opus / opusplan |
+
+The audit flags sessions where a cheaper model would have sufficed and complex
+sessions that skipped Plan mode (where opusplan's plan-then-execute would help).
 
 ## Best practices reference
 
