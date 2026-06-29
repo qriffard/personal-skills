@@ -120,6 +120,10 @@ Other sources:
   markdown via pandoc, preserving equations as `$...$` / `$$...$$`. Figures are
   extracted into `raw/assets/<slug>/` and image references in the markdown are
   rewritten to point there — browsable in Obsidian with linked figures.
+  Handles docx/odt/rtf sources automatically via pandoc. **If the script exits
+  with code 2**, it means the arXiv paper only has a PDF (no LaTeX or document
+  source). In that case, **ask the user** before proceeding — PDF extraction via
+  `extract-pdf.py` is lossy (equations may degrade) and costs more tokens.
   Requires: `pandoc`.
 - **Web article** → `WebFetch`; save to `raw/<slug>.md`.
 - **Local file** → copy into `raw/`.{{VIDEO_GUIDANCE}}
