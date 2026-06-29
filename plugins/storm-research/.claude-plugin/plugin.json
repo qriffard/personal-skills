@@ -1,0 +1,9 @@
+{
+  "name": "storm-research",
+  "version": "1.0.0",
+  "description": "Multi-perspective research pipeline inspired by Stanford STORM. Spawns five expert lenses (Practitioner, Academic, Skeptic, Economist, Historian), maps contradictions, synthesizes a verified HTML briefing, and cross-references local LLM Wiki vaults.",
+  "author": {
+    "name": "Quentin Riffard"
+  },
+  "keywords": ["storm", "research", "multi-perspective", "verification", "html-report", "wiki-aware"]
+}

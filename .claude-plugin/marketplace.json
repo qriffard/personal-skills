@@ -45,6 +45,12 @@
       "source": "./plugins/everything-tracker",
       "version": "1.0.0",
       "description": "Sync Kobo highlights into the personal LLM wiki — pulls highlights from the Kobo cloud API, enriches each book with Open Library metadata, and writes structured raw files ready for wiki ingest."
+    },
+    {
+      "name": "storm-research",
+      "source": "./plugins/storm-research",
+      "version": "1.0.0",
+      "description": "Multi-perspective research pipeline (Stanford STORM method): five expert lenses, contradiction mapping, verified HTML briefing, and local LLM Wiki cross-referencing."
     }
   ]
 }
