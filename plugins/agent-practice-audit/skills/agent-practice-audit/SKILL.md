@@ -59,9 +59,8 @@ The script automatically finds (both Claude Code and Cursor):
 
 | Deduction | Condition |
 |-----------|-----------|
-| -1 | Any CLAUDE.md >3000 tokens |
-| -3 | Any CLAUDE.md >5000 tokens |
-| -1 per skill (max -3) | SKILL.md >500 lines |
+| -1 | Any CLAUDE.md / Cursor rule file >3000 tokens |
+| -3 | Any CLAUDE.md / Cursor rule file >5000 tokens |
 | -1 | >5 MCP servers connected |
 | -2 | >10 MCP servers connected |
 

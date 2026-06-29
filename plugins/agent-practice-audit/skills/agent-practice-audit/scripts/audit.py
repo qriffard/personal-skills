@@ -161,7 +161,7 @@ def audit_config() -> dict:
                         f"{claude_md} is {tokens} tokens — review for bloat"
                     )
 
-    # --- Skill inventory (user-owned only, for config section) ---
+    # --- Skill count (user-owned only, for summary) ---
     user_skill_dirs = [
         HOME / ".claude" / "skills",
         HOME / ".cursor" / "skills",
@@ -171,19 +171,13 @@ def audit_config() -> dict:
         if not skills_dir.exists():
             continue
         for skill_md in skills_dir.rglob("SKILL.md"):
-            text = skill_md.read_text(errors="replace")
-            lines = len(text.splitlines())
+            lines = len(skill_md.read_text(errors="replace").splitlines())
             platform = "cursor" if ".cursor" in str(skill_md) else "claude"
             results["skills"].append({
                 "path": str(skill_md),
                 "lines": lines,
                 "platform": platform,
             })
-            if lines > 500:
-                results["issues"].append(
-                    f"{skill_md.parent.name} SKILL.md is {lines} lines "
-                    f"(recommended <500)"
-                )
 
     # --- MCP server count ---
     for settings_path in MCP_CONFIG_PATHS:
@@ -742,9 +736,6 @@ def score(config_results: dict, session_results: dict | None,
         elif cm["tokens"] > 3000:
             config_score -= 1
 
-    oversized_skills = sum(1 for s in config_results["skills"] if s["lines"] > 500)
-    config_score -= min(oversized_skills, 3)
-
     mcp = config_results.get("mcp_servers", 0)
     mcp_count = mcp["count"] if isinstance(mcp, dict) else mcp
     if mcp_count > 10:
@@ -852,10 +843,6 @@ def format_report(config: dict, sessions: dict | None, scores: dict,
     claude_skills = sum(1 for s in skills_list if s.get("platform") == "claude")
     lines.append(f"- Skills: {len(skills_list)} user-owned "
                  f"({claude_skills} Claude, {cursor_skills} Cursor)")
-    oversized = [s for s in skills_list if s["lines"] > 500]
-    if oversized:
-        for s in oversized:
-            lines.append(f"  - WARN: `{s['path']}` is {s['lines']} lines")
     mcp = config.get("mcp_servers", config.get("mcp_servers", 0))
     if isinstance(mcp, dict):
         lines.append(f"- MCP servers: {mcp['count']}")
