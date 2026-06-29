@@ -51,6 +51,12 @@
       "source": "./plugins/storm-research",
       "version": "1.0.0",
       "description": "Multi-perspective research pipeline (Stanford STORM method): five expert lenses, contradiction mapping, verified HTML briefing, and local LLM Wiki cross-referencing."
+    },
+    {
+      "name": "agent-practice-audit",
+      "source": "./plugins/agent-practice-audit",
+      "version": "1.0.0",
+      "description": "Audit coding agent practices — inspects CLAUDE.md config files, skill inventory, and recent session transcripts for anti-patterns. Produces a scored report with actionable recommendations."
     }
   ]
 }
