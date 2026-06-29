@@ -25,11 +25,14 @@ reading transcripts:
 python <SKILL_DIR>/scripts/audit.py
 ```
 
-The script automatically finds:
+The script automatically finds (both Claude Code and Cursor):
 - `~/.claude/CLAUDE.md` and project-level CLAUDE.md files
-- Skills in `~/.cursor/skills/` and `~/.claude/skills/`
-- MCP servers in settings.json
+- `~/.cursor/rules/` (Cursor rule files)
+- Skills in `~/.claude/skills/`, `~/.cursor/skills/`, `~/.cursor/skills-cursor/`
+- Plugin-provided skills in `~/.claude/plugins/cache/`, `~/.cursor/plugins/cache/`
+- MCP servers in `~/.claude/settings.json`, `~/.cursor/mcp.json`
 - Session transcripts in `~/.cursor/projects/*/agent-transcripts/`
+  and `~/.claude/projects/*/agent-transcripts/`
 
 ## After running the script
 

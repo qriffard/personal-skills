@@ -56,6 +56,32 @@ TRANSCRIPT_DIRS = [
     HOME / ".claude" / "projects",
 ]
 
+# All known skill locations across both platforms
+SKILL_DIRS = [
+    HOME / ".claude" / "skills",
+    HOME / ".cursor" / "skills",
+    HOME / ".cursor" / "skills-cursor",
+    HOME / ".claude" / "plugins" / "cache",
+    HOME / ".cursor" / "plugins" / "cache",
+]
+
+# Config/rules files that load every turn
+CONFIG_FILES = {
+    "claude": [
+        HOME / ".claude" / "CLAUDE.md",
+    ],
+    "cursor": [
+        HOME / ".cursor" / "rules",
+    ],
+}
+
+# MCP server config locations
+MCP_CONFIG_PATHS = [
+    HOME / ".claude" / "settings.json",
+    HOME / ".claude" / "settings.local.json",
+    HOME / ".cursor" / "mcp.json",
+]
+
 
 def estimate_tokens(text: str) -> int:
     return len(text) // 4
@@ -63,22 +89,24 @@ def estimate_tokens(text: str) -> int:
 
 def audit_config() -> dict:
     results = {
-        "claude_md": [],
+        "config_files": [],
         "skills": [],
-        "mcp_servers": 0,
+        "mcp_servers": {"count": 0, "sources": []},
         "issues": [],
     }
 
-    # Global CLAUDE.md
+    # --- Global config files (CLAUDE.md, Cursor rules) ---
+    # Claude Code: CLAUDE.md
     global_claude = HOME / ".claude" / "CLAUDE.md"
     if global_claude.exists():
         text = global_claude.read_text(errors="replace")
         tokens = estimate_tokens(text)
         lines = len(text.splitlines())
-        results["claude_md"].append({
+        results["config_files"].append({
             "path": str(global_claude),
             "tokens": tokens,
             "lines": lines,
+            "platform": "claude",
         })
         if tokens > 3000:
             results["issues"].append(
@@ -86,7 +114,34 @@ def audit_config() -> dict:
                 f"(loads every turn, never evicted)"
             )
 
-    # Project-level CLAUDE.md files
+    # Cursor: rules directory (each .mdc or .md file loads per turn)
+    rules_dir = HOME / ".cursor" / "rules"
+    if rules_dir.is_dir():
+        total_rule_tokens = 0
+        rule_count = 0
+        for rule_file in sorted(rules_dir.iterdir()):
+            if rule_file.suffix in (".md", ".mdc", ".txt"):
+                text = rule_file.read_text(errors="replace")
+                tokens = estimate_tokens(text)
+                total_rule_tokens += tokens
+                rule_count += 1
+                results["config_files"].append({
+                    "path": str(rule_file),
+                    "tokens": tokens,
+                    "lines": len(text.splitlines()),
+                    "platform": "cursor",
+                })
+                if tokens > 3000:
+                    results["issues"].append(
+                        f"{rule_file.name} is {tokens} tokens — review for bloat"
+                    )
+        if total_rule_tokens > 5000:
+            results["issues"].append(
+                f"Cursor rules total {total_rule_tokens} tokens across "
+                f"{rule_count} files — all load every turn"
+            )
+
+    # Project-level CLAUDE.md files (both platforms)
     for projects_dir in [HOME / ".cursor" / "projects", HOME / ".claude" / "projects"]:
         if projects_dir.exists():
             for claude_md in projects_dir.rglob("CLAUDE.md"):
@@ -94,29 +149,35 @@ def audit_config() -> dict:
                     continue
                 text = claude_md.read_text(errors="replace")
                 tokens = estimate_tokens(text)
-                results["claude_md"].append({
+                platform = "cursor" if ".cursor" in str(claude_md) else "claude"
+                results["config_files"].append({
                     "path": str(claude_md),
                     "tokens": tokens,
                     "lines": len(text.splitlines()),
+                    "platform": platform,
                 })
                 if tokens > 3000:
                     results["issues"].append(
                         f"{claude_md} is {tokens} tokens — review for bloat"
                     )
 
-    # Skill inventory
-    for skills_dir in [
-        HOME / ".cursor" / "skills",
+    # --- Skill inventory (user-owned only, for config section) ---
+    user_skill_dirs = [
         HOME / ".claude" / "skills",
-    ]:
+        HOME / ".cursor" / "skills",
+        HOME / ".cursor" / "skills-cursor",
+    ]
+    for skills_dir in user_skill_dirs:
         if not skills_dir.exists():
             continue
         for skill_md in skills_dir.rglob("SKILL.md"):
             text = skill_md.read_text(errors="replace")
             lines = len(text.splitlines())
+            platform = "cursor" if ".cursor" in str(skill_md) else "claude"
             results["skills"].append({
                 "path": str(skill_md),
                 "lines": lines,
+                "platform": platform,
             })
             if lines > 500:
                 results["issues"].append(
@@ -124,19 +185,24 @@ def audit_config() -> dict:
                     f"(recommended <500)"
                 )
 
-    # MCP server count
-    for settings_path in [
-        HOME / ".claude" / "settings.json",
-        HOME / ".claude" / "settings.local.json",
-        HOME / ".cursor" / "settings.json",
-    ]:
-        if settings_path.exists():
-            try:
-                settings = json.loads(settings_path.read_text())
-                servers = settings.get("mcpServers", {})
-                results["mcp_servers"] += len(servers)
-            except (json.JSONDecodeError, KeyError):
-                pass
+    # --- MCP server count ---
+    for settings_path in MCP_CONFIG_PATHS:
+        if not settings_path.exists():
+            continue
+        try:
+            settings = json.loads(settings_path.read_text())
+            servers = settings.get("mcpServers", {})
+            if servers:
+                platform = "cursor" if ".cursor" in str(settings_path) else "claude"
+                results["mcp_servers"]["count"] += len(servers)
+                results["mcp_servers"]["sources"].append({
+                    "path": str(settings_path),
+                    "count": len(servers),
+                    "platform": platform,
+                    "names": list(servers.keys()),
+                })
+        except (json.JSONDecodeError, KeyError):
+            pass
 
     return results
 
@@ -181,13 +247,8 @@ def audit_skills(transcript_dirs: list[str] | None = None) -> dict:
         "issues": [],
     }
 
-    # 1. Inventory all skills
-    skill_search_dirs = [
-        HOME / ".claude" / "skills",
-        HOME / ".cursor" / "skills",
-        HOME / ".claude" / "plugins" / "cache",
-        HOME / ".cursor" / "plugins" / "cache",
-    ]
+    # 1. Inventory all skills (both Claude Code and Cursor)
+    skill_search_dirs = list(SKILL_DIRS)
 
     all_skills = []
     seen_names: dict[str, list[dict]] = defaultdict(list)
@@ -212,8 +273,9 @@ def audit_skills(transcript_dirs: list[str] | None = None) -> dict:
             has_scripts = _has_script(sm.parent)
             disable_model = meta.get("disable-model-invocation", False)
 
-            # Determine source: user-owned (in ~/.claude/skills or
-            # ~/.cursor/skills) vs plugin-provided (in plugins/cache)
+            # Determine source: user-owned (in ~/.claude/skills,
+            # ~/.cursor/skills, or ~/.cursor/skills-cursor) vs
+            # plugin-provided (in plugins/cache)
             is_plugin = "plugins/cache" in path_str
             # For plugin-cached skills, deduplicate by (marketplace, plugin, skill)
             # keeping only the most recent version path
@@ -673,7 +735,8 @@ def score(config_results: dict, session_results: dict | None,
     skill_score = 10
 
     # Config deductions
-    for cm in config_results["claude_md"]:
+    config_files = config_results.get("config_files", config_results.get("claude_md", []))
+    for cm in config_files:
         if cm["tokens"] > 5000:
             config_score -= 3
         elif cm["tokens"] > 3000:
@@ -682,9 +745,11 @@ def score(config_results: dict, session_results: dict | None,
     oversized_skills = sum(1 for s in config_results["skills"] if s["lines"] > 500)
     config_score -= min(oversized_skills, 3)
 
-    if config_results["mcp_servers"] > 10:
+    mcp = config_results.get("mcp_servers", 0)
+    mcp_count = mcp["count"] if isinstance(mcp, dict) else mcp
+    if mcp_count > 10:
         config_score -= 2
-    elif config_results["mcp_servers"] > 5:
+    elif mcp_count > 5:
         config_score -= 1
 
     config_score = max(0, config_score)
@@ -775,15 +840,29 @@ def format_report(config: dict, sessions: dict | None, scores: dict,
     # Config
     lines.append(f"## Config Health: {scores['config_score']}/10")
     lines.append("")
-    for cm in config["claude_md"]:
+    config_files = config.get("config_files", config.get("claude_md", []))
+    for cm in config_files:
         status = "OK" if cm["tokens"] <= 3000 else "WARN"
-        lines.append(f"- `{cm['path']}`: {cm['tokens']} tokens, {cm['lines']} lines [{status}]")
-    lines.append(f"- Skills: {len(config['skills'])} total")
-    oversized = [s for s in config["skills"] if s["lines"] > 500]
+        platform = cm.get("platform", "")
+        tag = f" [{platform}]" if platform else ""
+        lines.append(f"- `{cm['path']}`: {cm['tokens']} tokens, "
+                      f"{cm['lines']} lines [{status}]{tag}")
+    skills_list = config.get("skills", [])
+    cursor_skills = sum(1 for s in skills_list if s.get("platform") == "cursor")
+    claude_skills = sum(1 for s in skills_list if s.get("platform") == "claude")
+    lines.append(f"- Skills: {len(skills_list)} user-owned "
+                 f"({claude_skills} Claude, {cursor_skills} Cursor)")
+    oversized = [s for s in skills_list if s["lines"] > 500]
     if oversized:
         for s in oversized:
             lines.append(f"  - WARN: `{s['path']}` is {s['lines']} lines")
-    lines.append(f"- MCP servers: {config['mcp_servers']}")
+    mcp = config.get("mcp_servers", config.get("mcp_servers", 0))
+    if isinstance(mcp, dict):
+        lines.append(f"- MCP servers: {mcp['count']}")
+        for src in mcp.get("sources", []):
+            lines.append(f"  - {src['path']}: {src['count']} servers [{src['platform']}]")
+    else:
+        lines.append(f"- MCP servers: {mcp}")
     for issue in config["issues"]:
         lines.append(f"- **Issue**: {issue}")
     lines.append("")
@@ -889,7 +968,7 @@ def main():
     config_results = None
     session_results = None
     skill_results = None
-    empty_config = {"claude_md": [], "skills": [], "mcp_servers": 0, "issues": []}
+    empty_config = {"config_files": [], "skills": [], "mcp_servers": {"count": 0, "sources": []}, "issues": []}
 
     if not args.sessions_only and not args.skills_only:
         config_results = audit_config()
