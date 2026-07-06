@@ -170,7 +170,9 @@ def audit_config() -> dict:
     for skills_dir in user_skill_dirs:
         if not skills_dir.exists():
             continue
-        for skill_md in skills_dir.rglob("SKILL.md"):
+        # Only <skills_dir>/<name>/SKILL.md is discoverable by the harness;
+        # deeper SKILL.md files are sub-skill reference material, not skills.
+        for skill_md in skills_dir.glob("*/SKILL.md"):
             lines = len(skill_md.read_text(errors="replace").splitlines())
             platform = "cursor" if ".cursor" in str(skill_md) else "claude"
             results["skills"].append({
@@ -253,7 +255,14 @@ def audit_skills(transcript_dirs: list[str] | None = None) -> dict:
     for base in skill_search_dirs:
         if not base.exists():
             continue
-        for sm in base.rglob("SKILL.md"):
+        # Plugin caches nest skills (<mkt>/<plugin>/<ver>/skills/<name>/SKILL.md)
+        # so they need rglob; user skill dirs only load <name>/SKILL.md one
+        # level deep — deeper files are sub-skill references, not skills.
+        if "plugins" in base.parts:
+            skill_mds = base.rglob("SKILL.md")
+        else:
+            skill_mds = base.glob("*/SKILL.md")
+        for sm in skill_mds:
             path_str = str(sm)
             # Skip marketplace source repos — only count installed/cached copies
             if "marketplaces" in path_str:
@@ -284,9 +293,7 @@ def audit_skills(transcript_dirs: list[str] | None = None) -> dict:
                 existing = cache_dedup.get(key)
                 if existing:
                     # Keep whichever has the newer mtime
-                    if sm.stat().st_mtime > Path(existing["path"]).stat().st_mtime:
-                        cache_dedup[key] = None  # will be replaced below
-                    else:
+                    if sm.stat().st_mtime <= Path(existing["path"]).stat().st_mtime:
                         continue
                 cache_dedup[key] = {"placeholder": True}  # filled below
 
@@ -332,7 +339,9 @@ def audit_skills(transcript_dirs: list[str] | None = None) -> dict:
         if not base.exists():
             continue
         for jsonl in base.rglob("*.jsonl"):
-            if "agent-transcripts" not in str(jsonl):
+            # Usage counting includes subagent transcripts (a skill read by a
+            # subagent is still usage), but must cover both platform layouts.
+            if not _is_transcript(jsonl):
                 continue
             try:
                 with open(jsonl) as f:
@@ -344,18 +353,33 @@ def audit_skills(transcript_dirs: list[str] | None = None) -> dict:
                             msg = json.loads(line)
                         except json.JSONDecodeError:
                             continue
-                        for block in msg.get("message", {}).get("content", []):
+                        content = msg.get("message", {}).get("content", [])
+                        if not isinstance(content, list):
+                            continue
+                        for block in content:
                             if not isinstance(block, dict):
                                 continue
-                            if (block.get("type") == "tool_use"
-                                    and block.get("name") == "Read"):
-                                path = block.get("input", {}).get("path", "")
+                            if block.get("type") != "tool_use":
+                                continue
+                            bname = block.get("name", "")
+                            binput = block.get("input", {}) or {}
+                            if bname == "Read":
+                                # Cursor Read uses "path"; Claude Code uses "file_path"
+                                path = binput.get("path") or binput.get("file_path") or ""
                                 if "SKILL.md" in path:
                                     parts = Path(path).parts
                                     for i, p in enumerate(parts):
                                         if p == "skills" and i + 1 < len(parts):
                                             skill_reads[parts[i + 1]] += 1
                                             break
+                            elif bname == "Skill":
+                                # Claude Code invokes skills via the Skill tool,
+                                # often without a SKILL.md Read.
+                                sk = binput.get("skill", "")
+                                if sk:
+                                    skill_reads[sk] += 1
+                                    if ":" in sk:
+                                        skill_reads[sk.rsplit(":", 1)[-1]] += 1
             except Exception:
                 continue
 
@@ -461,18 +485,36 @@ def audit_skills(transcript_dirs: list[str] | None = None) -> dict:
     return results
 
 
-def find_transcripts(extra_dirs: list[str] | None = None) -> list[Path]:
-    """Find all JSONL transcript files, sorted by modification time (newest first)."""
-    jsonl_files = []
-    search_dirs = list(TRANSCRIPT_DIRS)
-    if extra_dirs:
-        search_dirs.extend(Path(d) for d in extra_dirs)
+def _is_transcript(path: Path, from_extra_dir: bool = False) -> bool:
+    """True if a .jsonl file is a session transcript in either platform layout.
 
-    for base in search_dirs:
+    Cursor stores sessions under .../agent-transcripts/...; Claude Code writes
+    them directly as ~/.claude/projects/<slug>/<uuid>.jsonl.
+    """
+    sp = str(path)
+    if from_extra_dir:
+        return True
+    return "agent-transcripts" in sp or "/.claude/projects/" in sp
+
+
+def find_transcripts(extra_dirs: list[str] | None = None) -> list[Path]:
+    """Find session-level JSONL transcripts, sorted by mtime (newest first).
+
+    Subagent transcripts (.../subagents/...) are excluded — they aren't
+    user-driven sessions and skew per-session stats (message counts, tiers).
+    """
+    jsonl_files = []
+    search_dirs = [(d, False) for d in TRANSCRIPT_DIRS]
+    if extra_dirs:
+        search_dirs.extend((Path(d), True) for d in extra_dirs)
+
+    for base, is_extra in search_dirs:
         if not base.exists():
             continue
         for jsonl in base.rglob("*.jsonl"):
-            if "agent-transcripts" in str(jsonl):
+            if "/subagents/" in str(jsonl):
+                continue
+            if _is_transcript(jsonl, is_extra):
                 jsonl_files.append(jsonl)
 
     jsonl_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
@@ -518,13 +560,24 @@ def analyze_session(jsonl_path: Path) -> dict:
     result["message_count"] = len(messages)
     user_texts = []
 
+    # Tool names differ per platform: Cursor uses Shell/StrReplace/SwitchMode/Task,
+    # Claude Code uses Bash/Edit/MultiEdit/EnterPlanMode/Agent.
     EXPLORE_TOOLS = {"Read", "Glob", "Grep", "WebSearch", "WebFetch"}
-    EDIT_TOOLS = {"Write", "StrReplace", "EditNotebook"}
+    EDIT_TOOLS = {"Write", "StrReplace", "EditNotebook", "Edit", "MultiEdit", "NotebookEdit"}
+    SHELL_TOOLS = {"Shell", "Bash"}
+    SUBAGENT_TOOLS = {"Task", "Agent"}
+    PLAN_TOOLS = {"EnterPlanMode", "ExitPlanMode"}
     tool_call_index = 0
 
     for msg in messages:
-        role = msg.get("role", "")
-        content = msg.get("message", {}).get("content", [])
+        # Cursor puts role at top level; Claude Code uses top-level "type"
+        # with the role nested in "message".
+        role = (msg.get("role")
+                or msg.get("type")
+                or msg.get("message", {}).get("role", ""))
+        raw_content = msg.get("message", {}).get("content", [])
+        content: list = (raw_content if isinstance(raw_content, list)
+                         else [{"type": "text", "text": str(raw_content)}])
 
         if role == "user":
             result["user_messages"] += 1
@@ -547,7 +600,7 @@ def analyze_session(jsonl_path: Path) -> dict:
                         if result["first_edit_tool_index"] is None:
                             result["reads_before_first_edit"] += 1
 
-                    if tool_name == "Shell":
+                    if tool_name in SHELL_TOOLS:
                         result["shell_calls"] += 1
                         cmd = tool_input.get("command", "")
                         if TRIVIAL_COMMANDS.match(cmd):
@@ -562,7 +615,10 @@ def analyze_session(jsonl_path: Path) -> dict:
                         if tool_input.get("target_mode_id") == "plan":
                             result["plan_mode_used"] = True
 
-                    elif tool_name == "Task":
+                    elif tool_name in PLAN_TOOLS:
+                        result["plan_mode_used"] = True
+
+                    elif tool_name in SUBAGENT_TOOLS:
                         result["subagents_used"] += 1
 
                 elif block.get("type") == "text":
