@@ -29,22 +29,16 @@
       "description": "Convene a panel of model instances to pressure-test a decision or answer a question from multiple perspectives, then synthesize."
     },
     {
-      "name": "meal-planner",
-      "source": "./plugins/meal-planner",
-      "version": "1.0.0",
-      "description": "Weekly meal planning for the family — plan menus, save recipes, rate meals, generate grocery lists, and push them to Apple Reminders."
-    },
-    {
       "name": "session-handoff",
       "source": "./plugins/session-handoff",
       "version": "1.0.0",
-      "description": "Generate a dense, technical State of the Project summary for clean session handoffs — maximizes context continuity while minimizing token cost in the next window."
+      "description": "Generate a dense, technical State of the Project summary for clean session handoffs \u2014 maximizes context continuity while minimizing token cost in the next window."
     },
     {
       "name": "everything-tracker",
       "source": "./plugins/everything-tracker",
       "version": "1.0.0",
-      "description": "Sync Kobo highlights into the personal LLM wiki — pulls highlights from the Kobo cloud API, enriches each book with Open Library metadata, and writes structured raw files ready for wiki ingest."
+      "description": "Sync Kobo highlights into the personal LLM wiki \u2014 pulls highlights from the Kobo cloud API, enriches each book with Open Library metadata, and writes structured raw files ready for wiki ingest."
     },
     {
       "name": "storm-research",
@@ -56,7 +50,7 @@
       "name": "agent-practice-audit",
       "source": "./plugins/agent-practice-audit",
       "version": "1.1.0",
-      "description": "Audit coding agent practices — inspects CLAUDE.md config files, skill inventory, and recent session transcripts for anti-patterns. Produces a scored report with actionable recommendations."
+      "description": "Audit coding agent practices \u2014 inspects CLAUDE.md config files, skill inventory, and recent session transcripts for anti-patterns. Produces a scored report with actionable recommendations."
     }
   ]
 }
