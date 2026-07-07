@@ -32,6 +32,10 @@ Ask, and wait for each answer:
    - includes **images**? → wiki gets `raw/assets/` + image guidance.
    - includes **YouTube/video**? → schema gets the optional `yt-dlp` transcript
      guidance with a metadata-only fallback.
+   - includes **podcasts**? → schema gets `extract-podcast.py`: resolves Apple
+     Podcasts/RSS/direct-audio links to the episode, prefers an official
+     `podcast:transcript` feed entry, and falls back to local whisper.cpp
+     transcription otherwise.
 4. **Path** — default `~/wikis/<topic-slug>/`; confirm. If it exists and is
    non-empty, stop and ask for a different path.
 5. **Auto-sync (optional)** — should this wiki commit + push at the end of each
@@ -59,6 +63,15 @@ Ask, and wait for each answer:
   - else: `` (empty string)
 - `{{VIDEO_GUIDANCE}}` =
   - if YouTube/video: a newline + new bullet — `\n- **YouTube / video** → if \`yt-dlp\` is available, pull the transcript (\`yt-dlp --write-auto-subs --skip-download --sub-format vtt <url>\`) and save it as \`raw/<slug>.txt\`. If it isn't installed, ask the human whether to install it; if they decline, capture the watch page's title, channel, and description via \`WebFetch\` into \`raw/<slug>.md\` and note that no full transcript was captured.`
+  - else: `` (empty string)
+- `{{PODCAST_GUIDANCE}}` =
+  - if podcasts: a newline + new bullet — `\n- **Podcast** → \`python scripts/extract-podcast.py <url> raw/<slug>.md\`. Accepts an Apple Podcasts episode link, a direct RSS feed URL, or a direct audio URL. Uses the official transcript when the feed publishes one (Podcasting 2.0 \`podcast:transcript\`); otherwise downloads the audio and transcribes it locally with whisper.cpp (\`brew install ffmpeg whisper-cpp\` — the ggml model auto-downloads once, ~1.5GB, and is cached in \`~/.cache/whisper-cpp/\`). If those tools aren't installed, ask the human whether to install them; if they decline, capture just the episode title/show/description via \`WebFetch\` into \`raw/<slug>.md\` and note that no transcript was captured. Spotify-only episodes aren't supported — ask the human for the Apple Podcasts or RSS link instead.`
+  - else: `` (empty string)
+- `{{PODCAST_SCRIPT_ROW}}` =
+  - if podcasts: a newline + new table row — `\n| \`extract-podcast.py\` | Apple Podcasts / RSS / audio URL | \`python scripts/extract-podcast.py <url> raw/<slug>.md\` |`
+  - else: `` (empty string)
+- `{{PODCAST_SCRIPT_MENTION}}` =
+  - if podcasts: `, \`extract-podcast.py\``
   - else: `` (empty string)
 
 ## Step 3 — Scaffold
@@ -93,6 +106,10 @@ enabled — `raw/assets/`, so git tracks the empty directories.
 - `extract-pdf.py` — PDF to markdown (tries pymupdf4llm, pymupdf, pdftotext)
 - `extract-youtube.py` — YouTube URL or VTT/SRT to timestamped markdown
 - `outline.py` — extracts headings with line numbers from any markdown file
+If **podcasts** were selected in Step 1, also copy `extract-podcast.py` —
+resolves Apple Podcasts/RSS/audio URLs to a timestamped transcript, preferring
+an official feed transcript and falling back to local whisper.cpp
+transcription.
 Make all scripts executable (`chmod +x`). These support the two-phase ingest
 protocol described in the wiki's CLAUDE.md — the Fetch phase runs these scripts
 to extract content without consuming main-model tokens.

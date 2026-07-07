@@ -33,8 +33,9 @@ a lint, as defined under Operations below).
   gives you a link or a file, capturing a local copy into `raw/` is the first
   step of ingest (see Operations).{{IMAGE_GUIDANCE}}
 - `scripts/` — reusable extraction scripts (e.g. `extract-pdf.py`,
-  `extract-youtube.py`, `outline.py`). Run these during the Fetch phase of
-  ingest to avoid ad-hoc parsing. See "Fetch scripts" under Ingest.
+  `extract-youtube.py`, `outline.py`{{PODCAST_SCRIPT_MENTION}}). Run these
+  during the Fetch phase of ingest to avoid ad-hoc parsing. See "Fetch
+  scripts" under Ingest.
 - `wiki/` — markdown pages you own: summaries, entity pages, concept pages,
   comparisons, an `overview.md` synthesis. You create and update these.
 - `log.md` — append-only chronological record.
@@ -112,7 +113,7 @@ context window. Use extraction scripts in `scripts/` whenever possible.
 | `extract-arxiv.py` | arXiv URL or ID | `python scripts/extract-arxiv.py <url-or-id> raw/<slug>.md` (figures go to `raw/assets/<slug>/`) |
 | `extract-pdf.py` | PDF file | `python scripts/extract-pdf.py raw/<slug>.pdf` |
 | `extract-youtube.py` | URL or VTT file | `python scripts/extract-youtube.py <url> raw/<slug>.md` |
-| `outline.py` | Any markdown file | `python scripts/outline.py raw/<slug>.md` — produces compact heading outline |
+| `outline.py` | Any markdown file | `python scripts/outline.py raw/<slug>.md` — produces compact heading outline |{{PODCAST_SCRIPT_ROW}}
 
 Other sources:
 - **arXiv paper** → always use `extract-arxiv.py`, never the PDF extractor.
@@ -129,7 +130,7 @@ Other sources:
   lossy (equations may degrade) and costs more tokens.
   Requires: `pylatexenc`, `pandoc`.
 - **Web article** → `WebFetch`; save to `raw/<slug>.md`.
-- **Local file** → copy into `raw/`.{{VIDEO_GUIDANCE}}
+- **Local file** → copy into `raw/`.{{VIDEO_GUIDANCE}}{{PODCAST_GUIDANCE}}
 
 After extraction, always run `python scripts/outline.py raw/<slug>.md`.
 
