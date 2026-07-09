@@ -1,0 +1,169 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Research digest — {{VAULT}}</title>
+<style>
+:root{
+  --font-body:'Figtree',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+  --bg:#FAFAFA;--surface:#FFFFFF;--surface-elevated:#FFFFFF;--surface-2:#F2F2F2;
+  --border:rgba(0,0,0,.08);--border-bright:rgba(0,0,0,.15);
+  --text:#1A1A1A;--text-dim:#6C6C6C;--text-bright:#000;
+  --accent:#004CFC;--accent-dim:#004CFC1a;--accent-2:#33FFC6;
+  --error:#D9331F;--success:#0E875B;--warning:#F68E2E;
+  --node-a:#004CFC;--node-a-dim:#004CFC1a;
+  --node-b:#0E875B;--node-b-dim:rgba(14,135,91,.1);
+  --node-c:#F68E2E;--node-c-dim:rgba(246,142,46,.1);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#161616;--surface:#202020;--surface-elevated:#2A2A2A;--surface-2:#2A2A2A;
+  --border:rgba(255,255,255,.08);--border-bright:rgba(255,255,255,.15);
+  --text:#DDDDDD;--text-dim:#A1A1A1;--text-bright:#FFF;
+  --accent:#889AFF;--accent-dim:#889AFF1a;--accent-2:#33FFC6;
+  --error:#FF6B5E;--success:#33FFC6;--warning:#F9A94C;
+  --node-a:#889AFF;--node-a-dim:#889AFF1a;
+  --node-b:#33FFC6;--node-b-dim:rgba(51,255,198,.12);
+  --node-c:#F9A94C;--node-c-dim:rgba(249,169,76,.12);
+}}
+*{box-sizing:border-box}
+body{font-family:var(--font-body);font-size:16px;line-height:1.6;color:var(--text);background:var(--bg);
+  background-image:radial-gradient(at 15% 0%,var(--node-a-dim) 0%,transparent 45%),radial-gradient(at 85% 8%,var(--node-b-dim) 0%,transparent 40%);
+  background-attachment:fixed;margin:0;padding:0 1rem 4rem;overflow-wrap:break-word}
+.wrap{max-width:920px;margin:0 auto}
+.hero{padding:3rem 0 1.5rem}
+.hero__cat{font-family:var(--font-mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin-bottom:.6rem}
+.hero__title{font-size:clamp(30px,5vw,44px);font-weight:800;letter-spacing:-1.5px;line-height:1.05;margin:0 0 .5rem}
+.hero__title span{color:var(--accent)}
+.hero__sub{font-size:18px;color:var(--text-dim);max-width:62ch;margin:0 0 1rem}
+.hero__meta{font-family:var(--font-mono);font-size:12px;color:var(--text-dim)}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:1.5rem 0 2rem}
+.kpi{background:var(--surface-elevated);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.05);animation:fadeScale .4s ease-out both;animation-delay:calc(var(--i,0)*.06s)}
+.kpi__value{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi__label{font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-dim);margin-top:6px}
+.kpi--hot .kpi__value{color:var(--error)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:.5rem 0 0}
+.chip{font-family:var(--font-mono);font-size:10px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--text-dim);border:1px solid var(--border)}
+.section{margin-top:2.5rem}
+.section__label{font-family:var(--font-mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:9px;margin-bottom:.2rem}
+.section__label::before{content:'';width:9px;height:9px;border-radius:50%;background:currentColor}
+.section--core .section__label{color:var(--node-a)}
+.section--expand .section__label{color:var(--node-c)}
+.section--media .section__label{color:var(--node-b)}
+.section__desc{color:var(--text-dim);font-size:14px;margin:.1rem 0 1rem}
+.subhead{font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-dim);margin:1.6rem 0 .4rem}
+.ve-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem 1.35rem;margin:.9rem 0;position:relative;
+  box-shadow:0 2px 8px rgba(0,0,0,.05),0 1px 2px rgba(0,0,0,.03);transition:transform .2s ease,box-shadow .2s ease;
+  animation:fadeUp .45s ease-out both;animation-delay:calc(var(--i,0)*.05s)}
+.ve-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.1)}
+.section--core .ve-card{border-left:3px solid var(--node-a)}
+.section--expand .ve-card{border-left:3px solid var(--node-c)}
+.ve-card__topic{font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:.35rem}
+.ve-card h3{font-size:1.12rem;font-weight:700;line-height:1.3;margin:0 0 .3rem}
+.ve-card h3 a{color:var(--text-bright);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s}
+.ve-card h3 a:hover{border-bottom-color:var(--accent)}
+.meta{font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim);margin-bottom:.6rem}
+.summary{font-size:14.5px;line-height:1.6;margin:.4rem 0 .6rem}
+.why{padding:.55rem .85rem;border-radius:8px;border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 9%,transparent);font-size:13.5px;margin:.5rem 0}
+.section--expand .why{border-left-color:var(--node-c);background:color-mix(in srgb,var(--node-c) 10%,transparent)}
+.why strong{color:var(--accent)}
+.section--expand .why strong{color:var(--node-c)}
+.takeaways{list-style:none;padding:0;margin:.7rem 0 0;font-size:13.5px;line-height:1.55}
+.takeaways li{padding-left:1.3rem;position:relative;margin:.28rem 0}
+.takeaways li::before{content:'›';position:absolute;left:.2rem;color:var(--accent);font-weight:700}
+.section--expand .takeaways li::before{color:var(--node-c)}
+.badge{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:700;padding:.12rem .5rem;border-radius:999px;margin-left:.5rem;vertical-align:middle;letter-spacing:.5px}
+.badge.new{background:var(--error);color:#fff}
+.badge.old{background:var(--surface-2);color:var(--text-dim);border:1px solid var(--border)}
+.media .ve-card{padding:.75rem 1.1rem;border-left:3px solid var(--node-b)}
+.media .ve-card h3{font-size:1rem;display:flex;align-items:center;flex-wrap:wrap;gap:.1rem}
+.medium{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:.12rem .5rem;border-radius:5px;margin-right:.55rem;background:var(--node-b-dim);color:var(--node-b);text-transform:uppercase;letter-spacing:.5px}
+.foot{margin-top:2rem;font-size:12px;color:var(--text-dim);font-family:var(--font-mono)}
+/* Deep dive (Step 5) — offline CSS box-and-arrow diagram, no JS/CDN */
+.section--deepdive .section__label{color:var(--accent-2,#33FFC6)}
+.section--deepdive .ve-card{border-left:3px solid var(--accent)}
+.mechanism{font-size:14px;line-height:1.65;margin:.5rem 0 1rem}
+.pipeline{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:.5rem 0 .25rem}
+.flow-node{flex:1 1 150px;min-width:140px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:.6rem .8rem}
+.flow-node__label{font-weight:700;font-size:13px;color:var(--accent)}
+.flow-node__detail{font-size:12px;color:var(--text-dim);line-height:1.4;margin-top:.2rem}
+.flow-arrow{display:flex;align-items:center;justify-content:center;padding:0 .3rem;color:var(--border-bright);font-size:20px;flex:0 0 auto}
+@media (max-width:600px){.pipeline{flex-direction:column}.flow-arrow{transform:rotate(90deg);padding:.2rem 0}}
+a{color:var(--accent)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeScale{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media (max-width:768px){.hero{padding:2rem 0 1rem}body{padding:0 .8rem 3rem}}
+</style></head><body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero__cat">Research Digest · {{VAULT}} vault</div>
+  <h1 class="hero__title">What's new in <span>{{FOCUS_PHRASE}}</span></h1>
+  <p class="hero__sub">{{ANCHOR_SENTENCE — how these tie to the wiki's current work}}</p>
+  <div class="hero__meta">Sources: arXiv · Semantic Scholar · WebSearch &nbsp;·&nbsp; Generated {{TIMESTAMP}} &nbsp;·&nbsp; 🔥 New = on/after {{CUTOFF}} (last 6 mo)</div>
+  <div class="tags"><!-- one .chip per core topic --><span class="chip">{{TOPIC}}</span></div>
+</header>
+
+<div class="kpi-row">
+  <div class="kpi kpi--hot" style="--i:0"><div class="kpi__value">{{N_NEW}}</div><div class="kpi__label">🔥 New (≤6 mo)</div></div>
+  <div class="kpi" style="--i:1"><div class="kpi__value">{{N_CORE}}</div><div class="kpi__label">Core papers</div></div>
+  <div class="kpi" style="--i:2"><div class="kpi__value">{{N_ADJ}}</div><div class="kpi__label">Scope-expanding</div></div>
+  <div class="kpi" style="--i:3"><div class="kpi__value">{{N_MEDIA}}</div><div class="kpi__label">Media &amp; talks</div></div>
+</div>
+
+<section class="section section--core">
+  <div class="section__label">Core</div>
+  <p class="section__desc">Directly on the wiki's focus. New first, then established work.</p>
+  <div class="subhead">🔥 New — last 6 months</div>
+  <!-- one .ve-card per NEW core paper (increment --i), then the "Older" subhead + older cards -->
+  <article class="ve-card" style="--i:0">
+    <div class="ve-card__topic">{{TOPIC}}</div>
+    <h3><a href="{{URL}}">{{TITLE}}</a><span class="badge new">🔥 New</span></h3>
+    <div class="meta">{{AUTHORS}} · {{DATE}} · {{ARXIV_ID/VENUE}} · {{CITES}} cites</div>
+    <p class="summary">{{2–3 sentence summary}}</p>
+    <div class="why"><strong>Why relevant:</strong> {{one line}}</div>
+    <ul class="takeaways"><li>{{takeaway}}</li><!-- up to 5 --></ul>
+  </article>
+  <div class="subhead">Older — established / may have missed</div>
+  <!-- older core cards with <span class="badge old">Older</span> -->
+</section>
+
+<section class="section section--expand">
+  <div class="section__label">Expand your scope</div>
+  <p class="section__desc">One step outside the current focus — reachable methods that stretch the toolbox.</p>
+  <!-- New / Older subheads + adjacent cards; Why relevant explains the connection + what it opens up -->
+</section>
+
+<section class="section section--media media">
+  <div class="section__label">Media &amp; talks</div>
+  <p class="section__desc">Blogs, press, and video — lighter context around the field.</p>
+  <!-- compact cards; each h3 leads with <span class="medium">Blog|Press|Video|Podcast</span>; no summary/takeaways needed -->
+  <article class="ve-card" style="--i:0">
+    <h3><span class="medium">{{MEDIUM}}</span><a href="{{URL}}">{{TITLE}}</a><span class="badge new">🔥 New</span></h3>
+    <div class="meta">{{OUTLET/CHANNEL}} · {{AUTHOR/HOST}} · {{DATE}}</div>
+    <div class="why"><strong>Why relevant:</strong> {{one line}}</div>
+  </article>
+</section>
+
+<!-- STEP 5: appended only for papers the user deep-dives. Omit this whole section otherwise.
+     One .ve-card per deep-dived paper: mechanism paragraph + offline CSS pipeline diagram
+     built from the subagent's returned stages (label + detail + arrows). No Mermaid/CDN/JS. -->
+<section class="section section--deepdive">
+  <div class="section__label">Deep dive</div>
+  <p class="section__desc">Read from the paper itself — how the idea actually works.</p>
+  <article class="ve-card" style="--i:0">
+    <h3><a href="{{URL}}">{{TITLE}}</a></h3>
+    <div class="meta">{{AUTHORS}} · {{DATE}} · {{ARXIV_ID}}</div>
+    <p class="mechanism">{{MECHANISM — 150–250 words, plain language}}</p>
+    <div class="pipeline">
+      <!-- repeat .flow-node + .flow-arrow per returned stage; drop the trailing arrow -->
+      <div class="flow-node"><div class="flow-node__label">{{STAGE_LABEL}}</div><div class="flow-node__detail">{{one-line detail}}</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node"><div class="flow-node__label">{{STAGE_LABEL}}</div><div class="flow-node__detail">{{one-line detail}}</div></div>
+    </div>
+  </article>
+</section>
+
+<p class="foot">Ingest any hit into the {{VAULT}} wiki via use-llm-wiki. Local file — nothing uploaded.</p>
+
+</div>
+</body></html>

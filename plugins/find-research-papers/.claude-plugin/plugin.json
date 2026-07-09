@@ -1,0 +1,17 @@
+{
+  "name": "find-research-papers",
+  "version": "1.0.0",
+  "description": "Discover recent research papers relevant to your interests (derived from an LLM Wiki vault), rank them into a recency-badged digest rendered as a local self-contained HTML page, with an optional subagent-powered deep dive (idea diagram + mechanism explanation). Free sources only: arXiv, Semantic Scholar, WebSearch.",
+  "author": {
+    "name": "Quentin Riffard"
+  },
+  "keywords": [
+    "research",
+    "papers",
+    "arxiv",
+    "literature-discovery",
+    "wiki-aware",
+    "html-report",
+    "deep-dive"
+  ]
+}
