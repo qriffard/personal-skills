@@ -65,7 +65,8 @@ you ingest** — creating it if it doesn't exist yet. A brand-new wiki has no
   ---
   title: <human title>
   type: source | entity | concept | overview | comparison | link
-  date: <YYYY-MM-DD>
+  date: <YYYY-MM-DD — first ingest date, never changes after creation>
+  last_updated: <YYYY-MM-DD — bumped every time this page is refreshed from a re-ingest of its source(s); same as `date` on creation>
   sources: <count of raw sources backing this page>
   tags: [<topic-specific>]
   # pages backed by a captured source also record its origin:
@@ -75,6 +76,15 @@ you ingest** — creating it if it doesn't exist yet. A brand-new wiki has no
   ---
   ```
 - Page filenames are kebab-case slugs. One page = one entity/concept/source.
+- **Derive the slug from the source's human title, not its ID/hash.** Before
+  naming `raw/<slug>.*` or `wiki/<slug>.md`, get the real title — a Google Doc's
+  JSON has a top-level `title` field, a PDF has a title in its metadata or first
+  heading, a Confluence/Jira page has its page title, a web article has its
+  `<title>`/H1. Slugify that (kebab-case, no doc IDs, no hashes) instead of
+  reusing the source's opaque identifier. Only fall back to an ID-based slug if
+  no human title can be found. Example: a Google Doc titled "LISS Health
+  Methodology" at id `1mA-x_ql2...` becomes `raw/liss-health-methodology.md` /
+  `wiki/liss-health-methodology.md`, not `raw/doc-1mAx_ql2.md`.
 - This wiki emphasizes these page types: {{PAGE_TYPES}}.
 
 ## Operations
@@ -116,6 +126,7 @@ context window. Use extraction scripts in `scripts/` whenever possible.
 | `outline.py` | Any markdown file | `python scripts/outline.py raw/<slug>.md` — produces compact heading outline |{{PODCAST_SCRIPT_ROW}}
 
 Other sources:
+- **Google Doc** → `gws docs documents get --params '{"documentId":"<ID>","includeTabsContent":true}' --format json > raw/<slug>.json`, then extract to markdown. **Get the title first** (the JSON's top-level `title` field, or ask the human for the doc name) to name `<slug>` — never use the doc ID as the slug. Note: the `gws` CLI may prepend a stray line (e.g. `Using keyring backend: keyring`) before the JSON — strip it if the JSON parse fails on line 1.
 - **arXiv paper** → always use `extract-arxiv.py`, never the PDF extractor.
   It downloads the LaTeX source (the actual source of truth) and converts to
   markdown via `pylatexenc` (not pandoc — pandoc hangs on complex LaTeX with
@@ -173,7 +184,9 @@ Re-engage with the outline, not the full document.
 2. **Read only the flagged sections** using line offsets from the outline.
 3. **Summarize.** For a single source, the concept/entity page can double as the
    summary. Create a separate `type: source` page only when one source informs
-   many pages.
+   many pages. Set `date` (first ingest) and `last_updated` (same value) in
+   frontmatter on creation; on a **re-ingest** of an existing page's source,
+   only bump `last_updated` — `date` never changes.
 4. **Update `index.md`** and relevant `_index-<domain>.md`.
 5. **Refresh `_hot.md`** (create if absent).
 6. **Update entity/concept pages** — note contradictions or reinforcements.
@@ -205,8 +218,10 @@ in `log.md` since the last `lint` entry — and whenever a session opens with a
 superseded by newer sources, orphan pages (no inbound links), important concepts
 lacking a page, missing cross-references, and data gaps worth a web search. For
 **living docs** (Confluence, Google Docs), re-check each capture's `version`/date
-against the live source and flag stale ones for re-ingest. Resurface any source
-whose `captured` is `pending` or `failed` and retry it. Also check that
+against the live source and flag stale ones for re-ingest; when you do re-ingest
+one, bump only its `last_updated` (leave `date` — the first-ingest date —
+untouched). Resurface any source whose `captured` is `pending` or `failed` and
+retry it. Also check that
 `_hot.md` is current and small, and promote any tag-cluster that has grown past
 ~8 pages to its own `_index-<domain>.md`. Suggest new questions to investigate and sources to
 find. Record the pass: `## [YYYY-MM-DD] lint | <one-line summary>` in `log.md`.

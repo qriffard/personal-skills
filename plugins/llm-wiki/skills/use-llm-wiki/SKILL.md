@@ -40,8 +40,10 @@ Follow the vault's two-phase Ingest workflow from its `CLAUDE.md`:
 - **Phase 1 — Fetch (low-token).** Get the content into `<VAULT>/raw/<slug>.md`
   using extraction scripts when available (check `<VAULT>/scripts/`). For known
   types (PDF, YouTube, Google Docs JSON), run the matching script directly — no
-  need to read the content through the context window. For unknown formats,
-  follow the escalation ladder in the vault's schema (probe → ask user →
+  need to read the content through the context window. **`<slug>` comes from the
+  source's human title, not its ID/hash** (a Google Doc JSON has a top-level
+  `title` field; use it — don't name the file after the doc ID). For unknown
+  formats, follow the escalation ladder in the vault's schema (probe → ask user →
   small-sample → new script). After extraction, run
   `python <VAULT>/scripts/outline.py <VAULT>/raw/<slug>.md` to produce a compact
   heading outline. **Subagent delegation**: when fetch needs adaptability (auth,
@@ -52,6 +54,8 @@ Follow the vault's two-phase Ingest workflow from its `CLAUDE.md`:
   directive template to the user. Read only the sections they flag. Then
   synthesize wiki pages, update indexes/hot cache/log per the vault's schema.
   For small sources (<2000 tokens), skip the directive and process in one pass.
+  Set frontmatter `date` (first ingest) + `last_updated` (same value) on a new
+  page; on a re-ingest of an existing page's source, bump only `last_updated`.
 
 - **Verify every capture succeeded** (non-empty, the expected document, not an
   auth wall / error / blank result). If it fails or is partial, **never assume or
