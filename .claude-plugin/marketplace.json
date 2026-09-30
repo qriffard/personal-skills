@@ -57,6 +57,12 @@
       "source": "./plugins/find-research-papers",
       "version": "1.0.0",
       "description": "Discover recent research papers relevant to your interests (derived from an LLM Wiki vault), rank into a recency-badged digest rendered as a local self-contained HTML page, with an optional subagent-powered deep dive (idea diagram + mechanism). Free sources: arXiv, Semantic Scholar, WebSearch."
+    },
+    {
+      "name": "quentin-writing-style",
+      "source": "./plugins/quentin-writing-style",
+      "version": "1.0.0",
+      "description": "Write or edit technical documents in Quentin's personal voice (English and French), distilled from his first-author physics publications."
     }
   ]
 }

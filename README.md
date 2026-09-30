@@ -15,6 +15,7 @@ and shareable across machines and with other people.
 | **everything-tracker** | Sync Kobo highlights into the personal LLM wiki (`kobo-sync`). |
 | **storm-research** | Multi-perspective research pipeline (Stanford STORM): 5 lenses → contradiction map → verified HTML briefing, wiki-aware. |
 | **agent-practice-audit** | Audit coding agent practices — config health, session anti-patterns, scored report with recommendations. |
+| **quentin-writing-style** | Write or edit technical documents in Quentin's personal voice (English and French). |
 
 ## Install
 

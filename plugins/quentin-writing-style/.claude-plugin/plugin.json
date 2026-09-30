@@ -1,0 +1,7 @@
+{
+  "name": "quentin-writing-style",
+  "version": "1.0.0",
+  "description": "Write or edit technical documents in Quentin's personal voice (English and French), distilled from his first-author physics publications.",
+  "author": { "name": "Quentin Riffard" },
+  "keywords": ["writing", "style", "voice", "technical-writing", "design-docs"]
+}
