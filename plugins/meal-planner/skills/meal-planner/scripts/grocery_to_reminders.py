@@ -259,7 +259,7 @@ def main() -> int:
     if not shortcut_exists(SHORTCUT_NAME):
         sys.exit(
             f"Shortcut {SHORTCUT_NAME!r} not found.\n"
-            "See ~/.claude/skills/meal-planner/references/groceries-to-reminders.md for setup."
+            "See the meal-planner skill's references/groceries-to-reminders.md for setup."
         )
 
     ensure_list(args.list)

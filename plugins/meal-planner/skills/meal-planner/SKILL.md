@@ -21,7 +21,7 @@ Plans, edits, saves, and rates family meals. The `data/` directory JSON files in
 
 ## Setup — read every time, before any other action
 
-1. **Load configuration:** read `~/.claude/skills/meal-planner/config.yaml`. Expand `~` → `$HOME`. Use `context_root` and `data_root` everywhere; never hard-code paths.
+1. **Load configuration:** read `config.yaml` (in this skill's directory, next to this SKILL.md). Expand `~` → `$HOME`. Use `context_root` and `data_root` everywhere; never hard-code paths.
 2. **Read context files** (in `context_root`) in this order:
    1. `Family.md`
    2. `Preferences.md`
@@ -107,9 +107,9 @@ Vercel redeploys automatically (~30 s). Report success/failure briefly.
 ```
 
 Schema definitions:
-- **Recipe:** `~/.claude/skills/meal-planner/references/recipe_conventions.md`
-- **WeekPlan + Meal:** `~/.claude/skills/meal-planner/references/plan_conventions.md`
-- **Drinks:** `~/.claude/skills/meal-planner/references/drink_conventions.md`
+- **Recipe:** `references/recipe_conventions.md`
+- **WeekPlan + Meal:** `references/plan_conventions.md`
+- **Drinks:** `references/drink_conventions.md`
 
 ## Meals (composed dinners)
 

@@ -43,7 +43,7 @@ in Reminders.app, with two tag pills (#setup-test and #verify). Delete
 that reminder when verified.
 
 Full walkthrough in:
-    ~/.claude/skills/meal-planner/references/groceries-to-reminders.md
+    the meal-planner skill's references/groceries-to-reminders.md
 EOF
 
 exit 2
