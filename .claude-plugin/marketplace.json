@@ -63,6 +63,12 @@
       "source": "./plugins/quentin-writing-style",
       "version": "1.0.0",
       "description": "Write or edit technical documents in Quentin's personal voice (English and French), distilled from his first-author physics publications."
+    },
+    {
+      "name": "meal-planner",
+      "source": "./plugins/meal-planner",
+      "version": "1.0.0",
+      "description": "Weekly meal planning for the family \u2014 plan menus, save recipes, rate meals, generate grocery lists, and push them to Apple Reminders."
     }
   ]
 }
