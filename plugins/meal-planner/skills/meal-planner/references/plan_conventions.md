@@ -69,6 +69,7 @@ Check a plan with `python3 scripts/validate_plan.py <weekStart>` from `<repo_roo
 | `extras` | Optional `Ingredient[]` — ad-hoc grocery items not tied to a recipe (the fish itself, a side salad, bread). **Absolute quantities** for the night (NOT scaled by `servings`). They flow into the computed grocery list like recipe ingredients. |
 | `servings` | Total servings to make — applies to recipe components. `0` when `takeout: true`. |
 | `takeout` | `true` → no recipes, no prep. |
+| `override` | Optional. The **reason** this slot breaks a weekday rule from `rules.yaml` (e.g. `"Takeout moved to Thursday this week"`). `validate_plan.py` then warns instead of failing. Use only when the user asked for the exception. |
 
 A slot is exactly one of: `takeout: true` · `mealSlug: "..."` · inline `recipes: [...]` · a **no-recipe night** (`title` + `extras`, `recipes: []`). Any non-takeout slot may also add `extras` on top of its recipes (e.g. a recipe night plus "a baguette").
 
