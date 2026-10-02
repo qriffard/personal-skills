@@ -26,10 +26,11 @@ On-hand items are **load-bearing**: they anchor specific nights and get **exclud
 2. `<context_root>/Preferences.md` — hard constraints + taste dislikes
 3. `<context_root>/Schedule.md` — week structure, hard rules, shopping cadence, seasonality
 4. `<context_root>/Inspiration.md` — sources
+4b. `<context_root>/rules.yaml` — the checkable rules (exclusions, caps, weekday rules)
 5. `<data_root>/plans/` — last 4 plan files (resolve each slot's recipes, including `mealSlug` → `data/meals.json`) to avoid repeats
 6. `<data_root>/recipes/index.json` — library with ratings · `<data_root>/meals.json` — composed meals
 
-If any of files 1–4 is missing, **stop** and tell the user.
+If any of files 1–4b is missing, **stop** and tell the user.
 
 ### 1.3 Check seasonality before proposing
 
@@ -63,13 +64,15 @@ Only when the user signals the skeleton is good do you move to Phase 2.
 
 ### Hard rules to honor while drafting
 
-1. Weeknight (Mon–Fri) dinners ≤ 20 min active.
+These mirror `rules.yaml` (checked by `validate_plan.py`) plus the judgement-only rules from `Schedule.md`:
+
+1. Active-time caps per night from `rules.yaml → max_active_min` (Mon ≤ 15 assembly-leaning, Tue–Thu ≤ 20).
 2. Sunday lunch ≤ 5 min, assembly only (music lesson 12:30).
-3. **Saturday dinner = gas grill** (needs `grill`/`plancha`/`bbq`/`gas-grill` technique). **Friday = takeout.**
+3. **Saturday dinner = gas grill** (`rules.yaml → weekday_rules.sat.technique_any`). **Friday = takeout.**
 4. Sunday dinner sized for Monday-lunch leftovers (set `servings`).
 5. Lunches come from the previous night (covered by `servings`, no separate lunchbox planning).
 6. Fresh fish eaten within 2 days of purchase — front-load fish (Sun/Mon/Tue).
-7. **Honor household dietary constraints** from `Preferences.md` (allergies, aversions, lunchbox rules). Max 2 meat/fish per week unless the user relaxes it.
+7. **Honor household dietary constraints** — `rules.yaml → exclude_if` plus `Preferences.md` nuance (lunchbox rules, dislikes). Meat/fish cap from `rules.yaml` unless the user relaxes it for this week (say so in `context[]`).
 
 ---
 
@@ -84,7 +87,7 @@ For every night, decide the components and where each recipe comes from, in prio
 3. New recipe from an `Inspiration.md` source
 4. Original recipe (`source.type: "original"`)
 
-**Exclude:** `rating.score: 0`, cooked in last 4 weeks, any recipe whose `restrictions.*` flags conflict with the household constraints in `Preferences.md` (e.g. `restrictions.garlic: true` if the household has a garlic allergy).
+**Exclude:** `rating.score: 0`, cooked within `repeat_window_weeks`, any recipe with a flag listed in `rules.yaml → exclude_if` (e.g. `restrictions.garlic: true`).
 
 **Composed dinners → one recipe per component.** "Grilled chicken + saffron rice + zucchini + tzatziki" is **four** recipe files, not one. Split them so each is reusable and the grocery list aggregates correctly.
 
@@ -103,11 +106,11 @@ Follow `references/recipe_conventions.md` exactly. Key reminders from past misse
 - Structured `ingredients[]` and `method[]` — never markdown blobs.
 - **No ★ or decorators in ingredient `name` fields** — it breaks grocery aggregation. Hero markers belong in plan `context[]`.
 - `qty` is always a number; `null` for "to taste". Clean, canonical ingredient names (the grocery script normalises, but don't fight it).
-- Compute `nutrition` per serving from USDA. Set all `restrictions` flags.
+- Compute `nutrition` per serving from USDA. Set all `restrictions` flags truthfully.
+- Metric units only.
 - Vegetable minimums: raw greens ≥ 120 g/adult, cooked veg ≥ 200 g/adult.
-- **Always set `"createdBy": { "kind": "ai" }` on every new recipe file.** When editing an existing recipe, preserve its existing `createdBy` value.
 
-Write to `<data_root>/recipes/<slug>.json` and regenerate `recipes/index.json`.
+Write to `<data_root>/recipes/<slug>.json`, then run `python3 scripts/validate_recipe.py <slug>…` from `<repo_root>` and fix until clean. Don't touch `recipes/index.json` — `sync.sh` rebuilds it.
 
 ### 2.3 Save a reusable composed dinner as a Meal (optional)
 
@@ -121,22 +124,24 @@ If a composed dinner is one the family will want again, add it to `<data_root>/m
 
 ### 2.5 Assemble the plan JSON
 
-Write `<data_root>/plans/<weekStart>.json` per `plan_conventions.md`. Each slot is one of: `takeout` · `mealSlug` · inline `recipes[]`. Put hero-ingredient notes and planning rationale in `context[]`. Update `plans/index.json`.
+Write `<data_root>/plans/<weekStart>.json` per `plan_conventions.md`. Each slot is one of: `takeout` · `mealSlug` · inline `recipes[]` · no-recipe night. Put hero-ingredient notes and planning rationale in `context[]` (including any rule the user relaxed this week).
+
+**Validate loop:** run `python3 scripts/validate_plan.py <weekStart>` from `<repo_root>`. Fix every error and re-run until it passes. For each warning, either fix it or tell the user why it stands (e.g. a repeat they asked for).
 
 ### 2.6 Update usage
 
-For each recipe cooked this week, bump `usage.timesCooked` and set `usage.lastCooked`; reflect it in `recipes/index.json`.
+For each recipe cooked this week, bump `usage.timesCooked` and set `usage.lastCooked` (`sync.sh` carries it into the index).
 
 ### 2.7 Sync
 
 ```bash
-cd ~/claude-code/meal-plan-web && git add data/ && git commit -m "Add week YYYY-MM-DD plan" && git push
+<repo_root>/scripts/sync.sh "Add week YYYY-MM-DD: <dishes>"
 ```
-Vercel redeploys (~30 s). Report success.
+Ships the plan, recipes, rebuilt indexes and any `context/` edits. Report the one-line result.
 
 ### 2.8 Grocery list + Reminders
 
-The shopping list is **computed, never stored**:
+The shopping list is **computed, never stored** (run from `<repo_root>`):
 ```bash
 python3 scripts/grocery_list.py <weekStart>        # review
 python3 scripts/push_to_reminders.py <weekStart>   # send (add --clear to wipe stale)
@@ -168,7 +173,7 @@ When a preference surfaces in conversation that isn't in the context files:
 - [ ] ≤ 2 meat/fish (unless user relaxed); meal counts as one slot
 - [ ] Composed dinners split into component recipes; reusable ones saved as Meals
 - [ ] No ★ in ingredient names
-- [ ] `createdBy: { "kind": "ai" }` on every new recipe file
+- [ ] `validate_recipe.py` clean on new/edited recipes · `validate_plan.py` clean on the plan
 - [ ] Batch bases scaled · servings sized for leftovers · prep dated, kitchen-only
-- [ ] usage updated · indexes regenerated · committed & pushed
+- [ ] usage updated · published with `sync.sh`
 - [ ] Grocery list generated; reminded user to subtract on-hand items

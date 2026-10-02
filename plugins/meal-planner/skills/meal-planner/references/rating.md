@@ -34,25 +34,21 @@ Map free-form feedback:
 
 `rating` and `usage` are **recipe-level** (top-level fields, shared across all versions) — rate the recipe regardless of which version was cooked.
 
-2. **Update the recipe JSON:**
+2. **Update the recipe JSON** — `rating` only:
 
 ```json
 "rating": {
   "score": 4,
   "notes": "user's exact comment if specific, else empty string",
   "date": "YYYY-MM-DD"
-},
-"usage": {
-  "timesCooked": "<previous + 1 if just cooked>",
-  "lastCooked": "YYYY-MM-DD if just cooked"
 }
 ```
 
-3. **Update `<data_root>/recipes/index.json`** — same fields on the matching entry.
+Do **not** touch `usage` — it is updated when the week is planned (weekly-plan 2.6), so bumping it here would count the same dinner twice.
 
-4. **Git sync:**
+3. **Sync** (rebuilds `recipes/index.json`):
 ```bash
-cd ~/claude-code/meal-plan-web && git add data/recipes/ && git commit -m "Rate <slug>: <N>/5" && git push
+<repo_root>/scripts/sync.sh "Rate <slug>: <N>/5"
 ```
 
 5. **Confirm:** `Got it — <Title> rated <N>/5.`

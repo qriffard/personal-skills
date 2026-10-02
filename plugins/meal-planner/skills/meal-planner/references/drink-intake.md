@@ -40,7 +40,7 @@ If new bottles or botanicals are mentioned that aren't in `pantry.json`, offer t
 ## 4. Git sync
 
 ```bash
-cd ~/claude-code/meal-plan-web && git add data/drinks/ && git commit -m "Add drink: <slug>" && git push
+<repo_root>/scripts/sync.sh "Add drink: <slug>"
 ```
 
 Vercel redeploys (~30 s). The drink appears at `/drinks/<slug>`; a base shows its "used in N drinks" backlinks automatically.

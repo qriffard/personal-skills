@@ -1,8 +1,6 @@
-# Canonical user spec — Pauline's prompt
+# Historical context — Pauline's original prompt (2026-05-07)
 
-This is the source-of-truth user request that defines what the meal-planner skill is supposed to do for this household. When `Preferences.md`, `Schedule.md`, or `Family.md` are ambiguous, refer back to this prompt — it captures intent in the user's own words.
-
-The vault files (`Preferences.md`, `Schedule.md`, `Family.md`) are the operational, machine-readable distillation of this prompt. Update both in lockstep when intent changes.
+This is the request that started the meal-planner, kept for background. **It is not a source of truth.** Some of it is out of date (the 3-month wheelchair period, "Friday gas grill" — now Saturday grill + Friday takeout, the style anchors). The current rules live in `rules.yaml` (checkable) and `Preferences.md` / `Schedule.md` / `Family.md` (narrative); when they disagree with this file, they win.
 
 ---
 

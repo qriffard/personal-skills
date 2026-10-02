@@ -27,7 +27,8 @@ Plans, edits, saves, and rates family meals. The `data/` directory JSON files in
    2. `Preferences.md`
    3. `Schedule.md`
    4. `Inspiration.md`
-3. **If any of those four files is missing, stop** and tell the user.
+   5. `rules.yaml` — the machine-checkable house rules the validators enforce
+3. **If any of those five files is missing, stop** and tell the user.
 
 ## Role
 
@@ -44,11 +45,12 @@ Act as a professional nutritionist throughout every interaction. Apply nutrition
 ## Hard rules (always)
 
 - **English only.** All output (recipes, plans, replies) in English.
-- **Honor household dietary constraints from `Preferences.md` and `Family.md`.** These files are the source of truth for allergies, aversions, lunchbox rules, and portion needs — not this file. Read them on every invocation and apply them. Do not use hardcoded constraints.
-- **Plant-based majority:** max 2 meat/fish meals per week (or as configured in `Schedule.md`).
+- **House rules live in `context/rules.yaml`** (exclusions, meat/fish cap, weekday rules, time caps, repeat window, units), with the narrative in `Preferences.md` / `Family.md` / `Schedule.md`. Never hard-code a constraint from memory or from this skill — read them. When a rule changes, update `rules.yaml` and the prose together.
+- **Metric units** in every recipe (g, ml, °C; tbsp/tsp/pinch/piece/bunch allowed). Convert cups/oz/lb/°F at intake.
+- **Validate before publishing.** Every written recipe passes `scripts/validate_recipe.py`, every written plan passes `scripts/validate_plan.py`. On errors, fix and re-run until clean — never publish a failing file. Warnings are judgement calls: fix or explain them to the user.
 - **Recipe JSON** (`data/recipes/<slug>.json`) is the source of truth for per-recipe data. The skill writes it when creating or updating a recipe.
 - **No style anchors.** Recipe selection draws freely from all `Inspiration.md` sources. The guiding descriptors are: healthy · high-protein · gourmand · spicy.
-- **Restriction flags** (`restrictions.garlic`, `restrictions.lamb`, `restrictions.nuts`, `restrictions.lunchboxSafe`) MUST be set on every recipe — they are **recipe metadata** (does this dish contain X?). Use them to filter against the household's constraints from `Preferences.md`; do not treat them as universal rules.
+- **Restriction flags** (`restrictions.garlic`, `restrictions.lamb`, `restrictions.nuts`, `restrictions.lunchboxSafe`) MUST be set truthfully on every recipe — they are **recipe metadata** (does this dish contain X?). Flags never block saving a recipe; `rules.yaml → exclude_if` decides what can go into a plan.
 
 ## Mode detection
 
@@ -66,22 +68,15 @@ Pick exactly one of five modes from the user's phrasing. If ambiguous, ask once.
 
 Load the matching reference file and follow it.
 
-After completing any of these modes, sync to GitHub:
+After completing any mode, publish with the sync script — never with raw git commands:
 
-| Mode | What changes | Sync? |
-|---|---|---|
-| A — Weekly plan | New plan JSON + recipe files written | ✅ always |
-| B — Recipe intake | New recipe JSON + index.json | ✅ always |
-| C — Recipe rating | Recipe JSON (rating + usage fields) | ✅ always |
-| D — Edit a plan | Plan JSON | ✅ always |
-| F — Drink intake | `data/drinks/{bases,drinks,pantry}.json` | ✅ always |
-
-**Sync command** (run from `repo_root`):
 ```bash
-cd ~/claude-code/meal-plan-web && git add data/ && git commit -m "<short description>" && git push
+<repo_root>/scripts/sync.sh "<short description>"
 ```
 
-Vercel redeploys automatically (~30 s). Report success/failure briefly.
+It refuses to run off `main`, pulls first, rebuilds both `index.json` files, validates the changed recipes and plans, commits `data/` **and** `context/` (so preference edits ship too), and pushes. Vercel redeploys (~30 s). If it stops on a validation error, fix the file and re-run it. Report the outcome in one line.
+
+**Never hand-edit `index.json`** — `sync.sh` regenerates them (`scripts/build_indexes.py`).
 
 ## Data layout
 
@@ -92,6 +87,7 @@ Vercel redeploys automatically (~30 s). Report success/failure briefly.
     Preferences.md
     Schedule.md
     Inspiration.md
+    rules.yaml            ← machine-checkable house rules
   data/
     plans/
       index.json          ← week summaries (WeekPlanIndex[])
@@ -129,19 +125,22 @@ A recipe holds a `versions[]` array — e.g. Regular / High protein / Healthy. T
 
 ## Recently cooked — how to check
 
-To find recipes cooked in the last 4 weeks, read the last 4 plan files from `data/plans/` (sorted by filename) and collect each slot's recipe slugs — strip any `#version` and resolve `mealSlug` via `data/meals.json`. No separate history file.
+`validate_plan.py` warns on repeats within `rules.yaml → repeat_window_weeks`. To check before drafting, read the last plan files from `data/plans/` (sorted by filename) and collect each slot's recipe slugs — strip any `#version` and resolve `mealSlug` via `data/meals.json`. No separate history file.
 
-## Grocery list scripts
+## Scripts
 
-Two scripts live in `<repo_root>/scripts/`:
+All live in `<repo_root>/scripts/`; run them from `<repo_root>`.
 
 | Script | Purpose |
 |---|---|
+| `validate_recipe.py <slug>…` | Schema + rules check for recipes (flags vs ingredients, numeric qty, metric) |
+| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat/fish cap, Fri takeout, Sat grill, exclusions, repeats) |
+| `sync.sh "<message>"` | Publish: pull, rebuild indexes, validate, commit `data/` + `context/`, push |
 | `grocery_list.py [YYYY-MM-DD]` | Print the aggregated + scaled grocery list for a week |
 | `push_to_reminders.py [YYYY-MM-DD] [--dry-run] [--clear]` | Send the list to Apple Reminders via the "Add Tagged Reminder" Shortcut |
 
-Both read `data/plans/<weekStart>.json` + `data/recipes/<slug>.json`. The shopping list is **not stored in the plan** — it is always computed at runtime from recipe ingredients.
+The shopping list is **not stored in the plan** — it is always computed at runtime from recipe ingredients.
 
 ## On failure
 
-If a JSON write produces invalid JSON, fix and re-write. If a hard constraint would be violated by a chosen recipe (e.g. only candidate has `restrictions.garlic: true`), surface that and pick a different recipe.
+If a validator fails, read its report, fix the file, and re-run — loop until clean. If a chosen recipe is excluded by `rules.yaml` (e.g. `restrictions.garlic: true`), surface it and either pick another recipe or offer an adapted version (shallot for garlic) saved with truthful flags.

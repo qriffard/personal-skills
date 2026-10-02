@@ -33,9 +33,10 @@ Triggered when the user wants to modify the current week's plan without regenera
    - Update `prep` if the swap changes what needs to be prepped.
    - Update `usage` on any newly-added recipe (and decrement the one removed if it was only there this week — optional, low stakes).
 
-4. **Git sync:**
+4. **Validate, then sync** (from `<repo_root>`):
 ```bash
-cd ~/claude-code/meal-plan-web && git add data/ && git commit -m "Edit week <weekStart>: <brief description>" && git push
+python3 scripts/validate_plan.py <weekStart>      # fix until clean
+scripts/sync.sh "Edit week <weekStart>: <brief description>"
 ```
 
 5. **Regenerate the grocery list** (it's computed, not stored) and offer to re-push:
@@ -48,6 +49,6 @@ python3 scripts/push_to_reminders.py <weekStart> --clear   # --clear wipes the s
 
 ## Hard rules during edits
 
-- New picks must satisfy: `restrictions.garlic: false`, `restrictions.lamb: false`, lunchboxes nut-free.
-- New picks must respect the 4-week recent-meals window unless the user explicitly overrides. Compare by **slug**, ignoring any `#version` and resolving `mealSlug` to its component recipes.
+- New picks must pass `rules.yaml` (exclusions, meat/fish cap, weekday rules) — `validate_plan.py` checks it. Lunchbox nights stay nut-free.
+- New picks must respect `repeat_window_weeks` unless the user explicitly overrides. Compare by **slug**, ignoring any `#version` and resolving `mealSlug` to its component recipes.
 - Dropping a meal never removes the lunchbox source for the next school day without surfacing it to the user first.

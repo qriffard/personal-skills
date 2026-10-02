@@ -1,6 +1,6 @@
 # Groceries → Apple Reminders
 
-The grocery list is **computed, never stored** in the plan. Two scripts in `<repo_root>/scripts/`:
+The grocery list is **computed, never stored** in the plan. Two scripts in `<repo_root>/scripts/` (run from `<repo_root>`):
 
 ```bash
 python3 scripts/grocery_list.py <weekStart>                 # print the list
