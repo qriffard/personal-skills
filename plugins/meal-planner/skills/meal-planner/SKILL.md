@@ -47,7 +47,8 @@ Act as a professional nutritionist throughout every interaction. Apply nutrition
 - **English only.** All output (recipes, plans, replies) in English.
 - **House rules live in `context/rules.yaml`** (exclusions, meat/fish cap, weekday rules, time caps, repeat window, units), with the narrative in `Preferences.md` / `Family.md` / `Schedule.md`. Never hard-code a constraint from memory or from this skill — read them. When a rule changes, update `rules.yaml` and the prose together.
 - **Metric units** in every recipe (g, ml, °C; tbsp/tsp/pinch/piece/bunch allowed). Convert cups/oz/lb/°F at intake.
-- **Validate before publishing.** Every written recipe passes `scripts/validate_recipe.py`, every written plan passes `scripts/validate_plan.py`. On errors, fix and re-run until clean — never publish a failing file. Warnings are judgement calls: fix or explain them to the user.
+- **Validate before showing, not just before publishing.** Every written recipe passes `scripts/validate_recipe.py`, every written plan passes `scripts/validate_plan.py`, *before* you present the result to the user. On errors, fix and re-run until clean — the user never sees or receives a failing plan. Warnings are judgement calls: fix or explain them to the user.
+- **Every dinner is a full plate.** Main + veg + starch/legume, each a recipe in the slot's `recipes[]` (or a one-dish meal that covers all three). The app renders `recipes[]` only — a side in `extras` or `context[]` is invisible. `validate_plan.py` enforces `rules.yaml → dinner_min` (per-serving kcal / protein / fiber summed over the plate).
 - **Recipe JSON** (`data/recipes/<slug>.json`) is the source of truth for per-recipe data. The skill writes it when creating or updating a recipe.
 - **No style anchors.** Recipe selection draws freely from all `Inspiration.md` sources. The guiding descriptors are: healthy · high-protein · gourmand · spicy.
 - **Restriction flags** (`restrictions.garlic`, `restrictions.lamb`, `restrictions.nuts`, `restrictions.lunchboxSafe`) MUST be set truthfully on every recipe — they are **recipe metadata** (does this dish contain X?). Flags never block saving a recipe; `rules.yaml → exclude_if` decides what can go into a plan.
@@ -134,7 +135,7 @@ All live in `<repo_root>/scripts/`; run them from `<repo_root>`.
 | Script | Purpose |
 |---|---|
 | `validate_recipe.py <slug>…` | Schema + rules check for recipes (flags vs ingredients, numeric qty, metric) |
-| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat/fish cap, Fri takeout, Sat grill, exclusions, repeats) |
+| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat/fish cap, Fri takeout, Sat grill, exclusions, repeats, balanced-dinner floors) |
 | `sync.sh "<message>"` | Publish: pull, rebuild indexes, validate, commit `data/` + `context/`, push |
 | `grocery_list.py [YYYY-MM-DD]` | Print the aggregated + scaled grocery list for a week |
 | `push_to_reminders.py [YYYY-MM-DD] [--dry-run] [--clear]` | Send the list to Apple Reminders via the "Add Tagged Reminder" Shortcut |

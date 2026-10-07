@@ -19,7 +19,7 @@ Triggered when the user wants to modify the current week's plan without regenera
 
    | Edit | Action |
    |---|---|
-   | Swap the main | Replace `meals[i].recipes[0]` with the new slug. If the recipe doesn't exist, run Mode B inline first. |
+   | Swap the main | Replace `meals[i].recipes[0]` with the new slug. If the recipe doesn't exist, run Mode B inline first. Re-check the sides still fit the new main — a plate must stay main + veg + starch/legume. |
    | Swap/add a side | Edit the rest of `meals[i].recipes`. |
    | Use a saved meal | Set `meals[i].mealSlug` and clear `recipes` to `[]`. |
    | Pin a version | Append `#versionId` to a slug in `recipes[]` (e.g. `crispy-tofu#high-protein`). |
@@ -33,7 +33,7 @@ Triggered when the user wants to modify the current week's plan without regenera
    - Update `prep` if the swap changes what needs to be prepped.
    - Update `usage` on any newly-added recipe (and decrement the one removed if it was only there this week — optional, low stakes).
 
-4. **Validate, then sync** (from `<repo_root>`):
+4. **Validate, then sync** (from `<repo_root>`). Fix every error before telling the user the edit is done — including *unbalanced dinner*: add the missing side as a recipe, never as an `extras` item. Read the edited slot back from the file and show its components + summed kcal · protein · fiber.
 ```bash
 python3 scripts/validate_plan.py <weekStart>      # fix until clean
 scripts/sync.sh "Edit week <weekStart>: <brief description>"

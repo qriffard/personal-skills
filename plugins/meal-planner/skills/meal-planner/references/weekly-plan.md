@@ -38,17 +38,17 @@ Read the "Right now" block in `Schedule.md` and its `> _Updated: YYYY-MM_` marke
 
 ### 1.4 Propose a rough day-by-day plan
 
-Present a **table**, one line per night, concept-level only — no recipe files yet:
+Present a **table**, one line per night, concept-level only — no recipe files yet. Every night names **its full plate** — main **+ veg + starch/legume** — or is explicitly a one-dish meal that already contains all three:
 
-| Day | Idea |
-|---|---|
-| Sun | Grilled chicken + grilled-peach/burrata/tomato salad *(farmers market)* |
-| Mon | Tofu · fennel · orange · quinoa bowl *(on hand)* |
-| … | … |
-| Fri | Takeout |
-| Sat | Plancha — … |
+| Day | Main | Veg | Starch / legume | ≈ kcal · P · fiber |
+|---|---|---|---|---|
+| Sun | Grilled chicken | Peach/burrata/tomato salad | Grilled bread *(farmers market)* | 620 · 42 · 5 |
+| Mon | Tofu · fennel · orange · quinoa bowl *(on hand, one-dish)* | — | — | 490 · 24 · 7 |
+| … | … | … | … | … |
+| Fri | Takeout | | | |
+| Sat | Plancha — … | … | … | … |
 
-Honor the hard rules (below) while drafting. Show your protein count (e.g. "2 meat/fish: Sun + Wed ✓"). Mark which nights use on-hand items.
+Estimate per-serving totals from library `nutrition` (or USDA for new ideas) and compare to `rules.yaml → dinner_min`. **Fix a night below the floor before showing the table** — don't leave it for the user to spot. Honor the hard rules (below) while drafting. Show your protein count (e.g. "2 meat/fish: Sun + Wed ✓"). Mark which nights use on-hand items.
 
 ### 1.5 Iterate until approved — this is the heart of the mode
 
@@ -91,6 +91,8 @@ For every night, decide the components and where each recipe comes from, in prio
 
 **Composed dinners → one recipe per component.** "Grilled chicken + saffron rice + zucchini + tzatziki" is **four** recipe files, not one. Split them so each is reusable and the grocery list aggregates correctly.
 
+**Every component approved in Phase 1 becomes a recipe in the slot's `recipes[]`** — including plain sides (rice, a cucumber salad). Never park a side in `extras` or mention it only in `context[]`: the app renders `recipes[]` only, so it disappears from the plan (this is how Wed 2026-10-07 shipped as a lone chicken).
+
 **Seasonal adaptation of a reused recipe:** if a library recipe's hero veg is out of season, swap it for an in-season one and update the recipe file before using it. A `seasons: ["spring"]` tag does not block summer use once adapted.
 
 **No-recipe nights (improvised dishes).** A night can be a dish with no formal recipe — e.g. "grilled whole fish" you'll wing on the plancha. Do NOT leave the slot empty (the fish would vanish from the grocery list). Instead give the slot a `title` and an `extras[]` list of what to buy (absolute quantities), with `recipes: []`. The grocery script aggregates `extras` exactly like recipe ingredients. See `plan_conventions.md` → "No-recipe night example". Use this whenever the user describes a night by its protein/technique rather than a recipe.
@@ -126,7 +128,10 @@ If a composed dinner is one the family will want again, add it to `<data_root>/m
 
 Write `<data_root>/plans/<weekStart>.json` per `plan_conventions.md`. Each slot is one of: `takeout` · `mealSlug` · inline `recipes[]` · no-recipe night. Put hero-ingredient notes and planning rationale in `context[]` (including any rule the user relaxed this week).
 
-**Validate loop:** run `python3 scripts/validate_plan.py <weekStart>` from `<repo_root>`. Fix every error and re-run until it passes. For each warning, either fix it or tell the user why it stands (e.g. a repeat they asked for).
+**Validate loop — before you show the user anything:** run `python3 scripts/validate_plan.py <weekStart>` from `<repo_root>`. Fix every error and re-run until it passes; **the user never sees a plan that fails.** For each warning, either fix it or tell the user why it stands (e.g. a repeat they asked for).
+
+- *Unbalanced dinner* (`dinner_min`) → add the missing side as a recipe, or pin a high-protein version. Only set `override` if the user explicitly accepts a light night.
+- Then **self-review the written JSON, not your memory of the plan.** Print one line per slot from the file — recipe titles, summed kcal · protein · fiber, active minutes — and check it against the approved skeleton: every component present, no side living only in `extras`/`context[]`, prep tasks don't contradict `context[]` (e.g. "no stove after 10 am" vs an evening simmer), each school-night dinner packs as a lunchbox. Show this table to the user as the final plan.
 
 ### 2.6 Update usage
 
@@ -171,7 +176,10 @@ When a preference surfaces in conversation that isn't in the context files:
 - [ ] Household dietary constraints from `Preferences.md` applied (allergies, aversions, lunchbox rules)
 - [ ] Mon–Fri ≤ 20 min · Sun lunch assembly · Fri takeout · Sat grill
 - [ ] ≤ 2 meat/fish (unless user relaxed); meal counts as one slot
+- [ ] Every night = main + veg + starch/legume (or a one-dish meal), estimated in Phase 1
 - [ ] Composed dinners split into component recipes; reusable ones saved as Meals
+- [ ] No dish only in `extras` or `context[]` — every component is in `recipes[]`
+- [ ] Final plan shown as a per-slot table read back from the written JSON
 - [ ] No ★ in ingredient names
 - [ ] `validate_recipe.py` clean on new/edited recipes · `validate_plan.py` clean on the plan
 - [ ] Batch bases scaled · servings sized for leftovers · prep dated, kitchen-only

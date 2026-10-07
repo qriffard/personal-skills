@@ -66,7 +66,7 @@ Check a plan with `python3 scripts/validate_plan.py <weekStart>` from `<repo_roo
 | `recipes` | Ordered array of recipe slugs (inline). First entry is the main; rest are sides. `[]` when `takeout` or when using `mealSlug`. A slug may pin a recipe version as `slug#versionId` (e.g. `tofu-snap-peas-sesame-ginger#high-protein`); no `#` = default version. |
 | `mealSlug` | Optional. References a composed meal in `data/meals.json`. When set, its `recipes` provide the components — leave `recipes: []`. Counts as ONE slot; protein from the meal's hero recipe. |
 | `title` | Optional. Label for a **no-recipe night** (e.g. `"Grilled whole fish"`) so the card has a name when there's no main recipe. |
-| `extras` | Optional `Ingredient[]` — ad-hoc grocery items not tied to a recipe (the fish itself, a side salad, bread). **Absolute quantities** for the night (NOT scaled by `servings`). They flow into the computed grocery list like recipe ingredients. |
+| `extras` | Optional `Ingredient[]` — ad-hoc grocery items not tied to a recipe (the fish itself, bread, lime wedges). **Absolute quantities** for the night (NOT scaled by `servings`). They flow into the computed grocery list like recipe ingredients. **Never a dish:** the app does not render `extras`, so a side salad, rice, or any component you'd name at the table must be a recipe in `recipes[]` (a 3-line recipe is fine). |
 | `servings` | Total servings to make — applies to recipe components. `0` when `takeout: true`. |
 | `takeout` | `true` → no recipes, no prep. |
 | `override` | Optional. The **reason** this slot breaks a weekday rule from `rules.yaml` (e.g. `"Takeout moved to Thursday this week"`). `validate_plan.py` then warns instead of failing. Use only when the user asked for the exception. |
@@ -89,6 +89,10 @@ A slot is exactly one of: `takeout: true` · `mealSlug: "..."` · inline `recipe
 }
 ```
 `extras` items use the same shape as recipe ingredients (`name`, `qty`, `unit`, `note`) and the same clean-name rule (no ★, numeric `qty`).
+
+**What the user sees is `recipes[]` only.** The plan card renders the slot's recipes (or its `title`); `extras` reach the grocery list and `context[]` is a footnote. So every component of a dinner — main, veg side, starch — lives in `recipes[]`, and `context[]` never introduces a dish that isn't there ("serve with jasmine rice and a cucumber salad" with no such recipes is the classic miss).
+
+**Balanced dinner.** `validate_plan.py` sums per-serving `nutrition` over a slot's recipes and fails below `rules.yaml → dinner_min` (kcal / protein / fiber). A main alone almost never passes — add the veg side and starch/legume as recipes, or pin a higher-protein version. `override` silences it only when the user accepts a light night.
 
 ### Composed meals (`data/meals.json`)
 
