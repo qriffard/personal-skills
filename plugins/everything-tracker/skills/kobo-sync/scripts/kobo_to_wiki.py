@@ -4,7 +4,9 @@ Kobo → Personal LLM Wiki sync
 
 Pulls highlights from the Kobo cloud API, enriches each book with Open Library
 metadata (description, genres), and writes one raw markdown file per book into
-~/wikis/personal/raw/ — ready for Claude to ingest into the wiki.
+the wiki's raw directory — ready for Claude to ingest into the wiki:
+~/wikis/personal/brain/_raw/ for an obsidian-wiki vault (brain/AGENTS.md exists),
+~/wikis/personal/raw/ for the old LLM Wiki layout.
 
 Credentials (required env vars):
     KOBO_EMAIL      — Kobo account email
@@ -294,7 +296,12 @@ def main():
         )
 
     wiki_path = Path(args.wiki).expanduser()
-    raw_dir   = wiki_path / "raw"
+    if (wiki_path / "brain" / "AGENTS.md").exists():   # obsidian-wiki vault
+        raw_dir  = wiki_path / "brain" / "_raw"
+        seen_dirs = [raw_dir, raw_dir / "_archived"]   # ingest archives promoted files
+    else:                                              # old LLM Wiki layout
+        raw_dir  = wiki_path / "raw"
+        seen_dirs = [raw_dir]
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     today = datetime.now().date().isoformat()
@@ -319,9 +326,9 @@ def main():
         slug     = f"kobo-{slugify(book['title'])}"
         out_path = raw_dir / f"{slug}.md"
 
-        if out_path.exists() and not args.refresh:
+        if any((d / out_path.name).exists() for d in seen_dirs) and not args.refresh:
             skipped.append(book["title"])
-            print(f"  skip  {book['title']} (already in raw/; use --refresh to overwrite)")
+            print(f"  skip  {book['title']} (already captured; use --refresh to overwrite)")
             continue
 
         print(f"[{i}/{len(books)}] {book['title']} ({len(highlights)} highlights) — fetching metadata…")
@@ -335,7 +342,7 @@ def main():
     if written:
         print("\nNew files to ingest:")
         for title, fname, n in written:
-            print(f"  raw/{fname}  ({n} highlights)  ← {title}")
+            print(f"  {(raw_dir / fname).relative_to(wiki_path)}  ({n} highlights)  ← {title}")
     if skipped:
         print(f"\nAlready present (pass --refresh to overwrite): {len(skipped)} files")
 

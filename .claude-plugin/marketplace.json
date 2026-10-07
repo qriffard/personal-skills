@@ -7,7 +7,7 @@
     {
       "name": "llm-wiki",
       "source": "./plugins/llm-wiki",
-      "version": "1.0.0",
+      "version": "1.2.0",
       "description": "Bootstrap and operate Karpathy-style LLM Wikis: create-llm-wiki scaffolds a new vault; use-llm-wiki ingests into / queries an existing vault from anywhere."
     },
     {
@@ -37,7 +37,7 @@
     {
       "name": "everything-tracker",
       "source": "./plugins/everything-tracker",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "description": "Sync Kobo highlights into the personal LLM wiki \u2014 pulls highlights from the Kobo cloud API, enriches each book with Open Library metadata, and writes structured raw files ready for wiki ingest."
     },
     {
@@ -55,7 +55,7 @@
     {
       "name": "find-research-papers",
       "source": "./plugins/find-research-papers",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "description": "Discover recent research papers relevant to your interests (derived from an LLM Wiki vault), rank into a recency-badged digest rendered as a local self-contained HTML page, with an optional subagent-powered deep dive (idea diagram + mechanism). Free sources: arXiv, Semantic Scholar, WebSearch."
     },
     {

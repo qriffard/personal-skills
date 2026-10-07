@@ -23,6 +23,10 @@ Read, in order, only as much as you need:
 2. `~/wikis/<vault>/index.md` — master index and "Recently Active".
 3. 1–2 relevant `_index-<domain>.md` sub-indexes if the request points at a specific area.
 
+For an obsidian-wiki vault (`~/wikis/<vault>/brain/AGENTS.md` exists), read
+`brain/hot.md` then `brain/index.md` instead; there are no `_index-*` files,
+and page `summary:` fields and tags give the topics.
+
 From these, extract 3–6 concrete **core** search topics/keywords (methods, model families, problem areas).
 
 Then derive 2–3 **adjacent** topics — deliberately one step outside the current scope, chosen to expand it. Good adjacencies: a neighboring subfield that shares methods (e.g. RL ↔ control theory), the same technique applied in another domain, an upstream/downstream part of the pipeline the wiki doesn't yet cover, or a competing paradigm to what the wiki favors. Avoid topics so far out they're unrelated — the goal is reachable expansion, not noise.

@@ -10,8 +10,12 @@ description: |
 # Kobo → Wiki Sync
 
 Pulls highlights from the Kobo cloud API, enriches each book with Open Library
-metadata (summary, subjects), writes one `raw/kobo-<slug>.md` per book into
-`~/wikis/personal/raw/`, then ingests new files into the wiki.
+metadata (summary, subjects), writes one `kobo-<slug>.md` per book into the
+personal wiki's raw directory, then ingests new files into the wiki.
+
+The personal wiki (`~/wikis/personal`) is an obsidian-wiki vault under `brain/`:
+the script writes to `brain/_raw/` and Step 3 uses the framework's ingest. For a
+wiki still on the old layout, it writes to `raw/` and Step 3b applies.
 
 ## Step 1 — Check credentials
 
@@ -30,8 +34,10 @@ Never hardcode or echo credentials.
 
 ## Step 2 — Run the sync script
 
+The script is in this skill's `scripts/` directory (the base directory is shown
+when the skill loads):
 ```bash
-python ~/.claude/plugins/cache/personal-skills/everything-tracker/1.0.0/skills/kobo-sync/scripts/kobo_to_wiki.py
+python "<skill base directory>/scripts/kobo_to_wiki.py"
 ```
 
 Flags to pass when the user asks:
@@ -39,9 +45,27 @@ Flags to pass when the user asks:
 - `--all` — include books with no highlights (still writes metadata + summary)
 - `--wiki <path>` — override the default `~/wikis/personal`
 
-The script prints a list of files written to `raw/`.
+The script prints the list of files it wrote, relative to the wiki.
 
-## Step 3 — Ingest new files into the wiki
+## Step 3 — Ingest new files (obsidian-wiki vault, `brain/`)
+
+1. Pull `~/wikis/personal` (`git pull --rebase`, clean tree only), read its
+   `CLAUDE.md` and `brain/AGENTS.md` once.
+2. Check `obsidian-wiki info` shows `~/wikis/personal/brain`; otherwise run
+   `obsidian-wiki setup --vault ~/wikis/personal/brain --no-hooks`.
+3. Follow the framework's `wiki-ingest` skill in **raw mode** for the new
+   `brain/_raw/kobo-*.md` files only. Per book: one page
+   `references/<slug>.md` (no `kobo-` prefix); `sources: ["kobo:<isbn or slug>"]`;
+   `captured: <today>`; `version: <ISBN>` when known; tags from the subjects
+   (at most 5); body = title, author, year, summary, then all highlights as
+   blockquotes (grouped by theme when 10+). Link the author to an
+   `entities/<author-slug>` page, creating it if needed. Highlights stay in the
+   book's language; do not translate. The skill moves each file to
+   `brain/_raw/_archived/` and updates manifest, index, log and hot cache.
+4. Commit and push: `CLAUDE_PROJECT_DIR=~/wikis/personal bash ~/wikis/personal/.claude/hooks/sync-wiki.sh`.
+5. Summarize for the user as in Step 3b, point 3.
+
+## Step 3b — Ingest new files (old LLM Wiki layout)
 
 For **each new file** the script wrote (not skipped), ingest it into the
 personal wiki at `~/wikis/personal/` by following that wiki's full ingest
@@ -74,7 +98,7 @@ protocol (read its `CLAUDE.md` for the exact steps):
 ## Notes
 
 - The script is **idempotent**: re-running without `--refresh` skips books
-  whose raw files already exist.
+  whose raw files already exist (in `_raw/` or, once ingested, `_raw/_archived/`).
 - Open Library lookups are best-effort. If no summary is found, the raw file
   has an empty Summary section — still ingest it; the highlights are the value.
 - If a book has 0 highlights and `--all` was not passed, it is silently skipped

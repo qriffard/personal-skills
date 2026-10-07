@@ -23,6 +23,28 @@ Find the vault's absolute path:
 
 Let `VAULT` = the resolved absolute path.
 
+## Step 1b — obsidian-wiki vaults: delegate to the framework
+Some vaults have moved to the [`Ar9av/obsidian-wiki`](https://github.com/Ar9av/obsidian-wiki)
+framework. Detect it before anything else:
+- `<VAULT>/brain/AGENTS.md` exists (repo with a `brain/` vault, e.g. the personal
+  wiki): `REPO=<VAULT>`, `VAULT=<VAULT>/brain`.
+- `<VAULT>/AGENTS.md` and `<VAULT>/.manifest.json` exist: `REPO=VAULT`.
+
+If neither holds, skip this step and continue with Step 2. Otherwise **do not
+use Steps 2, 3 and 5** (they describe the old `wiki/`, `raw/`, `_hot.md` schema
+and would write pages in the wrong format). Instead:
+1. Pull: `git -C "<REPO>" pull --rebase` when the tree is clean (stop on conflict).
+2. Read `<REPO>/CLAUDE.md` if present, then `<VAULT>/AGENTS.md` (owner
+   conventions; they override framework defaults).
+3. Make sure the framework targets this vault: `obsidian-wiki info` must show
+   `<VAULT>`. If `obsidian-wiki` is missing, ask the user to `pip install
+   obsidian-wiki`; if the vault differs, run
+   `obsidian-wiki setup --vault "<VAULT>" --no-hooks`.
+4. Ingest → follow the framework's `wiki-ingest` skill; query → `wiki-query`.
+   The untrusted-content and capture-verification rules of Step 3 still apply.
+5. Sync with Step 4 using `<REPO>` (its `.claude/hooks/sync-wiki.sh`), then run
+   `obsidian-wiki lint "<VAULT>"` and report any `fail`.
+
 ## Step 2 — Refresh, then load the vault's schema
 **Pull first.** If the vault has an `origin` remote, run
 `git -C "<VAULT>" pull --rebase` so you read and write the latest — another
