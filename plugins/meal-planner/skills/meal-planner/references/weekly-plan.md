@@ -6,6 +6,22 @@ Generates a one-week plan (Sun → Sat) with recipes, batch bases, and prep task
 > Phase 1 = agree on a day-by-day skeleton (concepts only). Phase 2 = build the recipes and files.
 > This mirrors how the planning conversation actually works: the user shapes the week first, then we commit it.
 
+## Gates — the step is not done until its check passes
+
+Every step below ends with a **gate**: a command whose output must be clean (or a check
+you must state). Never move to the next step, and never show the user a result, with a
+gate failing. Fix and re-run; the checks are cheap.
+
+| Step | Gate |
+|---|---|
+| 1.4 Skeleton | `plate_check.py --day <ddd> <refs…>` passes for every night built from library recipes; new-recipe nights carry an estimate you'll confirm in 2.2 |
+| 2.2 Each new / edited recipe | `nutrients.py --write <slug>` then `validate_recipe.py <slug>` → 0 errors |
+| 2.5 Plan JSON | `validate_plan.py <weekStart>` → 0 errors; `plan_report.py <weekStart>` → exit 0 |
+| 2.6 Independent review | a fresh reviewer agent returns `VERDICT: PASS` (`references/plan-review.md`) |
+| 2.7 Publish | `sync.sh` succeeds (it re-validates) |
+
+The user sees the plan only after 2.6 passes, as the `plan_report.py` table.
+
 ---
 
 ## Phase 1 — Rough plan (conversation, no files written)
@@ -38,7 +54,7 @@ Read the "Right now" block in `Schedule.md` and its `> _Updated: YYYY-MM_` marke
 
 ### 1.4 Propose a rough day-by-day plan
 
-Present a **table**, one line per night, concept-level only — no recipe files yet. Every night names **its full plate** — main **+ veg + starch/legume** — or is explicitly a one-dish meal that already contains all three:
+Present a **table**, one line per night, concept-level only — no recipe files yet. Every night names **its full plate** — main **+ veg + starch/legume** — or is explicitly a one-dish meal that already contains all three. **Protein first:** pick the plant main's `#high-protein` version or add a protein side (`tofu-bites-soy-ginger`, `tempeh-crumble-smoky`, `edamame-cucumber-herb-salad`, `lemony-white-bean-salad`, `skyr-herb-sauce`, `edamame-lime-salt`, …) before reaching for meat:
 
 | Day | Main | Veg | Starch / legume | ≈ kcal · P · fiber |
 |---|---|---|---|---|
@@ -48,7 +64,19 @@ Present a **table**, one line per night, concept-level only — no recipe files 
 | Fri | Takeout | | | |
 | Sat | Plancha — … | … | … | … |
 
-Estimate per-serving totals from library `nutrition` (or USDA for new ideas) and compare to `rules.yaml → dinner_min`. **Fix a night below the floor before showing the table** — don't leave it for the user to spot. Honor the hard rules (below) while drafting. Show your protein count (e.g. "2 meat/fish: Sun + Wed ✓"). Mark which nights use on-hand items.
+**Gate — check every night's plate with the script, not by mental arithmetic** (from `<repo_root>`):
+
+```bash
+python3 scripts/plate_check.py --day mon red-lentil-dal#high-protein
+python3 scripts/plate_check.py --day wed bbq-chicken-thai#lean edamame-cucumber-herb-salad jasmine-rice#brown-light
+```
+
+It sums per-serving nutrition over the plate, checks `rules.yaml → dinner_targets`
+(kcal range, protein, protein share, fiber), checks the next-day lunchbox fit for Sun–Thu,
+and lists higher-protein versions. **Every library night must exit 0 before you show the
+table.** For a night that needs a recipe that doesn't exist yet, write an estimate from
+similar library recipes and mark it *(estimate — confirmed in Phase 2)*. Put the numbers in
+the table's last column. Honor the hard rules (below) while drafting. Show your protein count (e.g. "2 meat/fish: Sun + Wed ✓"). Mark which nights use on-hand items.
 
 ### 1.5 Iterate until approved — this is the heart of the mode
 
@@ -70,7 +98,8 @@ These mirror `rules.yaml` (checked by `validate_plan.py`) plus the judgement-onl
 2. Sunday lunch ≤ 5 min, assembly only (music lesson 12:30).
 3. **Saturday dinner = gas grill** (`rules.yaml → weekday_rules.sat.technique_any`). **Friday = takeout.**
 4. Sunday dinner sized for Monday-lunch leftovers (set `servings`).
-5. Lunches come from the previous night (covered by `servings`, no separate lunchbox planning).
+5. Lunches come from the previous night (covered by `servings`). **A Sun–Thu dinner's main must pack** (`lunchbox.fit` = `packs`/`separate`, see `rules.yaml → lunchbox_dinners`) — no tostadas, dressed leafy salads, scrambled eggs or bony fish the night before a school day.
+5b. **Dinner targets** (`rules.yaml → dinner_targets`): per serving, whole plate incl. extras — kcal range, protein floor and share, fiber floor. Derived from both adults' daily targets in `Preferences.md`.
 6. Fresh fish eaten within 2 days of purchase — front-load fish (Sun/Mon/Tue).
 7. **Honor household dietary constraints** — `rules.yaml → exclude_if` plus `Preferences.md` nuance (lunchbox rules, dislikes). Meat/fish cap from `rules.yaml` unless the user relaxes it for this week (say so in `context[]`).
 
@@ -108,11 +137,22 @@ Follow `references/recipe_conventions.md` exactly. Key reminders from past misse
 - Structured `ingredients[]` and `method[]` — never markdown blobs.
 - **No ★ or decorators in ingredient `name` fields** — it breaks grocery aggregation. Hero markers belong in plan `context[]`.
 - `qty` is always a number; `null` for "to taste". Clean, canonical ingredient names (the grocery script normalises, but don't fight it).
-- Compute `nutrition` per serving from USDA. Set all `restrictions` flags truthfully.
+- **Nutrition is computed, never typed:** after writing the file run `python3 scripts/nutrients.py --write <slug>` (also fills delta versions). If it reports an unmatched ingredient, add that ingredient to `TABLE` in `scripts/nutrients.py` (per-100 g USDA values + unit weights; `sync.sh` commits the table) and re-run. Every caloric ingredient needs a `qty`.
+- Set `role` and `lunchbox` (`fit` + `note`) — how it travels as next-day leftovers. Set all `restrictions` flags truthfully.
+- If the plain version misses the protein floor on its plate, add a `high-protein` delta version (more tofu/eggs/legumes/skyr, less oil/starch) and pin it.
 - Metric units only.
 - Vegetable minimums: raw greens ≥ 120 g/adult, cooked veg ≥ 200 g/adult.
 
-Write to `<data_root>/recipes/<slug>.json`, then run `python3 scripts/validate_recipe.py <slug>…` from `<repo_root>` and fix until clean. Don't touch `recipes/index.json` — `sync.sh` rebuilds it.
+Write to `<data_root>/recipes/<slug>.json`, then **gate** (from `<repo_root>`):
+
+```bash
+python3 scripts/nutrients.py --write <slug>…
+python3 scripts/validate_recipe.py <slug>…        # 0 errors
+```
+
+Then re-run `plate_check.py` for the night(s) that use it — an estimate from Phase 1 is
+replaced by the real number here; if the night now misses a target, fix it before going on.
+Don't touch `recipes/index.json` — `sync.sh` rebuilds it.
 
 ### 2.3 Save a reusable composed dinner as a Meal (optional)
 
@@ -126,25 +166,47 @@ If a composed dinner is one the family will want again, add it to `<data_root>/m
 
 ### 2.5 Assemble the plan JSON
 
-Write `<data_root>/plans/<weekStart>.json` per `plan_conventions.md`. Each slot is one of: `takeout` · `mealSlug` · inline `recipes[]` · no-recipe night. Put hero-ingredient notes and planning rationale in `context[]` (including any rule the user relaxed this week).
+Write `<data_root>/plans/<weekStart>.json` per `plan_conventions.md`. Each slot is one of: `takeout` · `mealSlug` · inline `recipes[]` · no-recipe night. Put hero-ingredient notes and planning rationale in `context[]` (including any rule the user relaxed this week). Slot `extras` are only things **eaten at that dinner** (they count in its nutrition); raw ingredients for batch bases, Sunday lunch and lunchbox snacks go in the plan's top-level `groceries`.
 
-**Validate loop — before you show the user anything:** run `python3 scripts/validate_plan.py <weekStart>` from `<repo_root>`. Fix every error and re-run until it passes; **the user never sees a plan that fails.** For each warning, either fix it or tell the user why it stands (e.g. a repeat they asked for).
+**Gate — before you show the user anything** (from `<repo_root>`):
 
-- *Unbalanced dinner* (`dinner_min`) → add the missing side as a recipe, or pin a high-protein version. Only set `override` if the user explicitly accepts a light night.
-- Then **self-review the written JSON, not your memory of the plan.** Print one line per slot from the file — recipe titles, summed kcal · protein · fiber, active minutes — and check it against the approved skeleton: every component present, no side living only in `extras`/`context[]`, prep tasks don't contradict `context[]` (e.g. "no stove after 10 am" vs an evening simmer), each school-night dinner packs as a lunchbox. Show this table to the user as the final plan.
+```bash
+python3 scripts/build_indexes.py
+python3 scripts/validate_plan.py <weekStart>     # 0 errors
+python3 scripts/plan_report.py <weekStart>       # exit 0 — read it
+```
 
-### 2.6 Update usage
+Fix every error and re-run until clean; **the user never sees a plan that fails.**
+
+- *Off nutrition target* → add the missing side **as a recipe**, pin a `#high-protein` / `#lean` version, or trim the starch/oil. `override` only if the user explicitly accepts it for that night.
+- *Lunchbox doesn't pack* → move that main to Fri/Sat, or pick another main.
+- Warnings: fix, or say why it stands (e.g. a repeat they asked for). Active time over the cap → move the work into a dated prep task.
+- Read `plan_report.py` critically against the approved skeleton: every component present, weekly average near `dinner_share` of each adult's day, the lunchbox column all packable, prep consistent with `context[]`.
+
+### 2.6 Independent review
+
+Launch a **fresh reviewer agent** with `references/plan-review.md` (how-to-launch is in
+that file). It re-reads the files, re-runs the scripts and judges plate coherence,
+nutrition honesty, the lunchbox chain, feasibility and preferences. **FAIL → fix → new
+reviewer**, until `VERDICT: PASS` (after 3 failed rounds, show the user the open issues
+instead of pretending it's done).
+
+**Present the plan** as the `plan_report.py` table (+ the prep and the reviewer's
+non-blocking notes in a line). That table is read from the files — it is exactly what the
+app and the grocery list will use.
+
+### 2.7 Update usage
 
 For each recipe cooked this week, bump `usage.timesCooked` and set `usage.lastCooked` (`sync.sh` carries it into the index).
 
-### 2.7 Sync
+### 2.8 Sync
 
 ```bash
 <repo_root>/scripts/sync.sh "Add week YYYY-MM-DD: <dishes>"
 ```
 Ships the plan, recipes, rebuilt indexes and any `context/` edits. Report the one-line result.
 
-### 2.8 Grocery list + Reminders
+### 2.9 Grocery list + Reminders
 
 The shopping list is **computed, never stored** (run from `<repo_root>`):
 ```bash
@@ -176,12 +238,15 @@ When a preference surfaces in conversation that isn't in the context files:
 - [ ] Household dietary constraints from `Preferences.md` applied (allergies, aversions, lunchbox rules)
 - [ ] Mon–Fri ≤ 20 min · Sun lunch assembly · Fri takeout · Sat grill
 - [ ] ≤ 2 meat/fish (unless user relaxed); meal counts as one slot
-- [ ] Every night = main + veg + starch/legume (or a one-dish meal), estimated in Phase 1
+- [ ] Every night = main + veg + starch/legume (or a one-dish meal); `plate_check.py` passed in Phase 1
+- [ ] Protein from plant sources first (`#high-protein` versions, protein sides); meat/fish ≤ cap
+- [ ] Sun–Thu mains pack for the next day's lunchbox
 - [ ] Composed dinners split into component recipes; reusable ones saved as Meals
 - [ ] No dish only in `extras` or `context[]` — every component is in `recipes[]`
-- [ ] Final plan shown as a per-slot table read back from the written JSON
+- [ ] Final plan shown as the `plan_report.py` table
 - [ ] No ★ in ingredient names
-- [ ] `validate_recipe.py` clean on new/edited recipes · `validate_plan.py` clean on the plan
+- [ ] New/edited recipes: `nutrients.py --write` + `validate_recipe.py` clean
+- [ ] `validate_plan.py` + `plan_report.py` clean · reviewer agent `VERDICT: PASS`
 - [ ] Batch bases scaled · servings sized for leftovers · prep dated, kitchen-only
 - [ ] usage updated · published with `sync.sh`
 - [ ] Grocery list generated; reminded user to subtract on-hand items

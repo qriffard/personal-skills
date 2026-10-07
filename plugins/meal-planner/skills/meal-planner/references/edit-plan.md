@@ -33,7 +33,12 @@ Triggered when the user wants to modify the current week's plan without regenera
    - Update `prep` if the swap changes what needs to be prepped.
    - Update `usage` on any newly-added recipe (and decrement the one removed if it was only there this week — optional, low stakes).
 
-4. **Validate, then sync** (from `<repo_root>`). Fix every error before telling the user the edit is done — including *unbalanced dinner*: add the missing side as a recipe, never as an `extras` item. Read the edited slot back from the file and show its components + summed kcal · protein · fiber.
+4. **Gates, then sync** (from `<repo_root>`):
+   - Check the new plate first: `python3 scripts/plate_check.py --day <ddd> <refs…>` → exit 0.
+   - Any new/edited recipe: `nutrients.py --write <slug>` + `validate_recipe.py <slug>` → 0 errors.
+   - `build_indexes.py`, `validate_plan.py <weekStart>` → 0 errors, `plan_report.py <weekStart>` → exit 0. Off target → add the missing side **as a recipe** or pin a `#high-protein` version, never an `extras` item.
+   - Launch a fresh reviewer agent (`references/plan-review.md`, target: *edit of `<weekStart>`, nights `<dates>`* — it also checks the lunchbox chain around them) → `VERDICT: PASS`.
+   - Show the edited nights' rows from `plan_report.py`.
 ```bash
 python3 scripts/validate_plan.py <weekStart>      # fix until clean
 scripts/sync.sh "Edit week <weekStart>: <brief description>"
@@ -52,3 +57,4 @@ python3 scripts/push_to_reminders.py <weekStart> --clear   # --clear wipes the s
 - New picks must pass `rules.yaml` (exclusions, meat/fish cap, weekday rules) — `validate_plan.py` checks it. Lunchbox nights stay nut-free.
 - New picks must respect `repeat_window_weeks` unless the user explicitly overrides. Compare by **slug**, ignoring any `#version` and resolving `mealSlug` to its component recipes.
 - Dropping a meal never removes the lunchbox source for the next school day without surfacing it to the user first.
+- A swapped-in Sun–Thu main must pack for the next day (`lunchbox.fit`); a swap that drops a side must replace it so the plate still meets `dinner_targets`.

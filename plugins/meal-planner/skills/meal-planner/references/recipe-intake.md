@@ -33,7 +33,9 @@ Assign the correct `role` to each component (`main`, `base`, `side`, `sauce`, `c
 
 **Slug** — lowercase ASCII, hyphenated, 3-6 words. Pattern: `<protein>-<key-veg>-<grain>` or `<technique>-<protein>-<flavor>`. The slug becomes the filename — do not store it inside the JSON.
 
-**`role`** (optional) — the recipe's role on a plate, drives its label in a composed meal: `main` · `side` · `salad` · `base` · `sauce` · `dressing` · `condiment` · `dip` · `bread` · `drink`. Set it for anything that's naturally a component (a tzatziki = `condiment`, a vinaigrette = `dressing`, a rice pilaf = `base`). Standalone mains can omit it (meal cards fall back to positional Main/Side).
+**`role`** (required) — the recipe's role on a plate, drives its label in a composed meal: `main` · `side` · `salad` · `base` · `sauce` · `dressing` · `condiment` · `dip` · `bread` · `drink` (a tzatziki = `condiment`, a vinaigrette = `dressing`, a rice pilaf = `base`).
+
+**`lunchbox`** (required) — how the dish travels as next-day leftovers (lunch is the previous night's dinner): `{"fit": "packs" | "separate" | "no", "note": "…"}`. `packs` = good cold / room temp or reheated in a thermos (say which); `separate` = packs if a part is kept apart (dressing, sauce, bun) — the note says what; `no` = soggy, watery, rubbery, bony or messy for a kid — the note says why. Different from `restrictions.lunchboxSafe` (nuts only).
 
 **`classification`**
 - `proteinType`: `"meat"` | `"fish"` | `"plant-based"`
@@ -55,10 +57,7 @@ Assign the correct `role` to each component (`main`, `base`, `side`, `sauce`, `c
 
 If a flag is listed in `rules.yaml → exclude_if` (garlic, lamb for this household), the recipe could never be planned. **Offer to adapt** before saving (shallot or spring onion for garlic) and save the adapted version with `garlic: false`. If the user wants the original anyway, save it with the flag `true` — it stays in the library but is filtered out of plans.
 
-**`nutrition`** — compute from USDA FoodData Central. Values are **per serving** (total ÷ `serves`):
-```json
-{ "kcal": N, "protein": N, "carbs": N, "fat": N, "fiber": N }
-```
+**`nutrition`** — **computed, never typed.** Write a placeholder (`{"kcal": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0}`), save the file, then run `python3 scripts/nutrients.py --write <slug>` — it sums the ingredients (USDA-based table) per serving, for every version. If it can't (unmatched ingredient), add the ingredient to `TABLE` in `scripts/nutrients.py` with per-100 g USDA values and unit weights, then re-run. Every caloric ingredient needs a numeric `qty` (`null` only for salt, spices, herbs "to taste").
 
 **`ingredients`** — structured array, NOT markdown:
 ```json
@@ -118,7 +117,7 @@ Rules:
 ```json
 "versions": [ { "id": "regular", "label": "Regular", "default": true, "serves": N, "activeTimeMin": N, "totalTimeMin": N, "nutrition": {...}, "ingredients": [...], "method": [...] } ]
 ```
-Add more versions (e.g. `high-protein`, `healthy`) only when the user asks. A non-default version is a **delta** — a `changes[]` list (`add`/`remove`/`substitute` by ingredient name) + its own `nutrition` + optional `methodNotes[]`. Don't repeat the full ingredient/method list. See `recipe_conventions.md` → Versions.
+Add more versions when the user asks — and add a `high-protein` version yourself when a plant main can't reach the protein floor on a normal plate (more tofu/eggs/legumes/skyr, less oil/starch). A non-default version is a **delta** — a `changes[]` list (`add`/`remove`/`substitute` by ingredient name) + its own `nutrition` + optional `methodNotes[]`. Don't repeat the full ingredient/method list. See `recipe_conventions.md` → Versions.
 
 **`rating`** — always initialize as:
 ```json
@@ -136,7 +135,14 @@ Add more versions (e.g. `high-protein`, `healthy`) only when the user asks. A no
 
 Write to `<data_root>/recipes/<slug>.json` using the full schema from `references/recipe_conventions.md`.
 
-Run `python3 scripts/validate_recipe.py <slug>…` from `<repo_root>` (all files written, if the meal was split) and fix until clean. Don't touch `recipes/index.json` — `sync.sh` rebuilds it.
+**Gates** (from `<repo_root>`, all files written if the meal was split):
+
+```bash
+python3 scripts/nutrients.py --write <slug>…
+python3 scripts/validate_recipe.py <slug>…      # 0 errors
+```
+
+Then launch a fresh reviewer agent with `references/plan-review.md` (target: *recipes `<slug>…`* — section F) → `VERDICT: PASS`. Don't touch `recipes/index.json` — `sync.sh` rebuilds it.
 
 ## 5. Sync
 

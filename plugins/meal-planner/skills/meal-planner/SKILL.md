@@ -47,8 +47,11 @@ Act as a professional nutritionist throughout every interaction. Apply nutrition
 - **English only.** All output (recipes, plans, replies) in English.
 - **House rules live in `context/rules.yaml`** (exclusions, meat/fish cap, weekday rules, time caps, repeat window, units), with the narrative in `Preferences.md` / `Family.md` / `Schedule.md`. Never hard-code a constraint from memory or from this skill — read them. When a rule changes, update `rules.yaml` and the prose together.
 - **Metric units** in every recipe (g, ml, °C; tbsp/tsp/pinch/piece/bunch allowed). Convert cups/oz/lb/°F at intake.
-- **Validate before showing, not just before publishing.** Every written recipe passes `scripts/validate_recipe.py`, every written plan passes `scripts/validate_plan.py`, *before* you present the result to the user. On errors, fix and re-run until clean — the user never sees or receives a failing plan. Warnings are judgement calls: fix or explain them to the user.
-- **Every dinner is a full plate.** Main + veg + starch/legume, each a recipe in the slot's `recipes[]` (or a one-dish meal that covers all three). The app renders `recipes[]` only — a side in `extras` or `context[]` is invisible. `validate_plan.py` enforces `rules.yaml → dinner_min` (per-serving kcal / protein / fiber summed over the plate).
+- **Every step has a gate; nothing reaches the user before its gate passes.** Each mode's reference lists its gates (scripts that must come back clean). Fix and re-run — the user never sees or receives a failing recipe or plan. Warnings are judgement calls: fix or explain them.
+- **Independent review before presenting.** For a weekly plan, a plan edit, or a new recipe, launch a fresh reviewer agent with `references/plan-review.md`; only `VERDICT: PASS` lets you present. You never grade your own work.
+- **Nutrition is computed, never typed.** `python3 scripts/nutrients.py --write <slug>` writes a recipe's per-serving nutrition from its ingredients (all versions). `validate_recipe.py` rejects stored numbers that drift from the ingredients, kcal that doesn't match the macros, and caloric ingredients without a quantity. Unknown ingredient → add it to `TABLE` in `scripts/nutrients.py`.
+- **Every dinner meets the family's targets.** `rules.yaml → dinner_targets` (per serving, whole plate incl. extras: kcal range, protein floor + share of kcal, fiber floor), derived from each adult's daily targets in `Preferences.md`. Main + veg + starch/legume, each a recipe in `recipes[]` (the app renders recipes; `extras` are only things eaten as-is). Protein from plant sources first: `#high-protein` versions and protein sides exist for the common plant mains.
+- **Lunchboxes.** Every recipe has `lunchbox.fit` (`packs` / `separate` / `no` + note). A Sun–Thu dinner's main must pack (`rules.yaml → lunchbox_dinners`): nothing soggy, watery, rubbery or bony goes to school the next day.
 - **Recipe JSON** (`data/recipes/<slug>.json`) is the source of truth for per-recipe data. The skill writes it when creating or updating a recipe.
 - **No style anchors.** Recipe selection draws freely from all `Inspiration.md` sources. The guiding descriptors are: healthy · high-protein · gourmand · spicy.
 - **Restriction flags** (`restrictions.garlic`, `restrictions.lamb`, `restrictions.nuts`, `restrictions.lunchboxSafe`) MUST be set truthfully on every recipe — they are **recipe metadata** (does this dish contain X?). Flags never block saving a recipe; `rules.yaml → exclude_if` decides what can go into a plan.
@@ -134,8 +137,11 @@ All live in `<repo_root>/scripts/`; run them from `<repo_root>`.
 
 | Script | Purpose |
 |---|---|
-| `validate_recipe.py <slug>…` | Schema + rules check for recipes (flags vs ingredients, numeric qty, metric) |
-| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat/fish cap, Fri takeout, Sat grill, exclusions, repeats, balanced-dinner floors) |
+| `validate_recipe.py <slug>…` | Schema + rules check for recipes (flags vs ingredients, numeric qty, metric, role, lunchbox fit, nutrition = ingredients) |
+| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat/fish cap, Fri takeout, Sat grill, exclusions, repeats, dinner nutrition targets, lunchbox fit) |
+| `nutrients.py <slug>[#v]… · --all · --write <slug>…` | Compute nutrition from ingredients; show, check, or store it |
+| `plate_check.py [--day ddd] <ref>…` | One plate vs the dinner targets + next-day lunchbox (skeleton gate) |
+| `plan_report.py <YYYY-MM-DD>` | The week on one screen: each plate vs targets and each adult's day, lunchbox chain, validator verdict — what you show as "the plan" |
 | `sync.sh "<message>"` | Publish: pull, rebuild indexes, validate, commit `data/` + `context/`, push |
 | `grocery_list.py [YYYY-MM-DD]` | Print the aggregated + scaled grocery list for a week |
 | `push_to_reminders.py [YYYY-MM-DD] [--dry-run] [--clear]` | Send the list to Apple Reminders via the "Add Tagged Reminder" Shortcut |
@@ -144,4 +150,4 @@ The shopping list is **not stored in the plan** — it is always computed at run
 
 ## On failure
 
-If a validator fails, read its report, fix the file, and re-run — loop until clean. If a chosen recipe is excluded by `rules.yaml` (e.g. `restrictions.garlic: true`), surface it and either pick another recipe or offer an adapted version (shallot for garlic) saved with truthful flags.
+If a validator or the reviewer fails, read its report, fix the file, and re-run — loop until clean (reviewer: a *new* agent each round; after 3 failed rounds show the user the open issues instead of a "done" plan). If a chosen recipe is excluded by `rules.yaml` (e.g. `restrictions.garlic: true`), surface it and either pick another recipe or offer an adapted version (shallot for garlic) saved with truthful flags.

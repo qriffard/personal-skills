@@ -34,6 +34,8 @@ Shared fields sit at the top level; everything that can differ between versions 
 
   "restrictions": { "garlic": false, "lamb": false, "nuts": false, "lunchboxSafe": true },
 
+  "lunchbox": { "fit": "packs", "note": "good cold" },
+
   "versions": [
     {
       "id": "regular",
@@ -117,7 +119,7 @@ A recipe holds a `versions[]` array (≥1, exactly one `default: true`). Shared 
 
 **Delta version rules:**
 - `changes[]` ops: `add` (needs `item`, optional `group` label), `remove` (needs `name`), `substitute` (needs `name` to match + replacement `item`). Matching is by ingredient `name`, case-insensitive.
-- `nutrition` is **required** on a delta version — macros can't be reliably recomputed from a delta. Enter the version's per-serving macros.
+- `nutrition` is **required** on a delta version and, like the default's, is **written by `scripts/nutrients.py --write <slug>`** (it resolves the delta and sums the ingredients). Never type it.
 - `methodNotes[]` (markdown) capture method tweaks — shown as a callout above the shared method. The base `method` is reused; don't repeat it.
 - `serves`/`activeTimeMin`/`totalTimeMin` are optional overrides; omit to inherit the default's.
 - The app resolves the delta → effective ingredients and shows the diff (added / removed / substituted) to educate. The grocery list and scaling use the resolved list (removed items are not bought).
@@ -126,12 +128,23 @@ A recipe holds a `versions[]` array (≥1, exactly one `default: true`). Shared 
 
 ## Field rules
 
-### `role` (optional)
+### `role` (required)
 
 The role the recipe plays on a plate — drives its label inside a composed meal. One of:
 `main` · `side` · `salad` · `base` (grain/starch) · `sauce` · `dressing` · `condiment` · `dip` · `bread` · `drink`.
+The role is intrinsic to the recipe (a vinaigrette is always a dressing), reused across every meal that includes it.
 
-Set it whenever a recipe is naturally a component (a dressing, a sauce, a dip, a side). Standalone mains can leave it unset — a meal card falls back to positional **Main** (first recipe) / **Side** (the rest). The role is intrinsic to the recipe (a vinaigrette is always a dressing), reused across every meal that includes it.
+### `lunchbox` (required)
+
+How the dish travels as next-day leftovers — lunch is the previous night's dinner.
+
+| `fit` | Meaning | `note` |
+|---|---|---|
+| `packs` | good cold / room temp, or reheated in a thermos | optional — say "thermos" if needed |
+| `separate` | packs only if a part is kept apart (dressing, sauce, bun, crunchy topping) | required — what to keep apart |
+| `no` | soggy, watery, rubbery, bony or messy for a kid | required — why |
+
+A Sun–Thu dinner's **main** must be `packs` or `separate` (`rules.yaml → lunchbox_dinners`). Independent of `restrictions.lunchboxSafe` (nuts).
 
 ### `classification`
 
@@ -168,11 +181,12 @@ All four fields (`garlic`, `lamb`, `nuts`, `lunchboxSafe`) must be set explicitl
 
 ### `nutrition`
 
-All values are **per serving** (i.e. for `serves: 4`, this is 1/4 of the total recipe). Compute from USDA FoodData Central. All fields nullable if unknown.
+All values are **per serving** (i.e. for `serves: 4`, this is 1/4 of the total recipe). **Written by `python3 scripts/nutrients.py --write <slug>`** from the ingredients (USDA-based table in that script) — never typed. `validate_recipe.py` fails a recipe whose stored nutrition drifts from its ingredients, whose kcal doesn't match 4P + 4C + 9F, or whose caloric ingredients lack a `qty`.
 
 ### `ingredients`
 
-- `qty` is a number (never a string like `"2-3"`). Use `null` for "to taste".
+- `qty` is a number (never a string like `"2-3"`). Use `null` only for "to taste" items (salt, spices, herbs) — a caloric ingredient without a qty counts as 0 kcal and fails validation.
+- Canned goods: give the can weight and say "drained" in the note — the calculator counts ~60 % drained weight.
 - `unit` is **metric**: `g`, `kg`, `ml`, `l`, plus `tbsp`, `tsp`, `pinch`, `piece`, `bunch`, `clove`. Never cup/oz/lb/inch. Use `null` for unitless counts.
 - `note` is markdown. Use for prep state ("pressed 30 min"), optional flags, or substitutions.
 
