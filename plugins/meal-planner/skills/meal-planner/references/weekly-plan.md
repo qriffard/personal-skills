@@ -43,7 +43,7 @@ On-hand items are **load-bearing**: they anchor specific nights and get **exclud
 3. `<context_root>/Schedule.md` — week structure, hard rules, shopping cadence, seasonality
 4. `<context_root>/Inspiration.md` — sources
 4b. `<context_root>/rules.yaml` — the checkable rules (exclusions, caps, weekday rules)
-5. `<data_root>/plans/` — last 4 plan files (resolve each slot's recipes, including `mealSlug` → `data/meals.json`) to avoid repeats
+5. `<data_root>/plans/` — plans whose `weekStart` falls in the last `rules.yaml → repeat_window_weeks` **calendar** weeks (not "the last N files" — there can be gaps). Resolve each slot's recipes (`mealSlug` → `data/meals.json`). Only **mains** must not repeat (`repeat_roles`); sides, bases, sauces and salads are staples and may.
 6. `<data_root>/recipes/index.json` — library with ratings · `<data_root>/meals.json` — composed meals
 
 If any of files 1–4b is missing, **stop** and tell the user.
@@ -73,10 +73,12 @@ python3 scripts/plate_check.py --day wed bbq-chicken-thai#lean edamame-cucumber-
 
 It sums per-serving nutrition over the plate, checks `rules.yaml → dinner_targets`
 (kcal range, protein, protein share, fiber), checks the next-day lunchbox fit for Sun–Thu,
-and lists higher-protein versions. **Every library night must exit 0 before you show the
-table.** For a night that needs a recipe that doesn't exist yet, write an estimate from
-similar library recipes and mark it *(estimate — confirmed in Phase 2)*. Put the numbers in
-the table's last column. Honor the hard rules (below) while drafting. Show your protein count (e.g. "2 meat/fish: Sun + Wed ✓"). Mark which nights use on-hand items.
+and lists higher-protein versions. Items eaten as-is go in with
+`--servings <n> --extra "Flatbread or pita|4|piece"`; a component whose recipe doesn't
+exist yet goes in as `--est "warm-lentil-salad=300/14/9"` (per-serving kcal/protein/fiber,
+estimated from similar library recipes — confirmed in Phase 2). **Every night must exit 0
+before you show the table.** Put the numbers in the table's last column. Honor the hard
+rules (below) while drafting. Show your protein count (e.g. "2 meat/fish: Sun + Wed ✓"). Mark which nights use on-hand items.
 
 ### 1.5 Iterate until approved — this is the heart of the mode
 
@@ -86,6 +88,8 @@ Expect several rounds. The user will swap days, change proteins, reject ideas, a
 - **When a new preference or constraint surfaces mid-conversation** (e.g. "Pauline hates eggplant", "she's fine with garlicky sausage"), **write it to the relevant context file immediately** (`Preferences.md` usually), confirm it, and apply it. Don't just hold it in the chat — it must persist for future weeks. See [[how-to-update-context]] below.
 - **Proactively flag a hard-constraint risk** (e.g. garlic in linguiça/tzatziki) and offer to adapt — but accept the user's override if they say it's fine.
 - A **composed dinner** (main + sides) is normal — keep it as one night with multiple components.
+- **What counts as a full plate:** protein + vegetable + starch/legume. A legume main (dal, chana, shakshuka with chickpeas, lentil salad) *is* the starch/legume component — it still needs a vegetable (in the dish, or a side). A recipe with role `main` may be served as a side (palak dal next to tikka) — fine.
+- **The meat/fish cap is a ceiling, not a target.** "Plant-forward" in a wish means stay at or under it; use a slot only for a requested protein (e.g. "one salmon night").
 - Re-check the protein cap after every swap.
 
 Only when the user signals the skeleton is good do you move to Phase 2.
@@ -100,7 +104,10 @@ These mirror `rules.yaml` (checked by `validate_plan.py`) plus the judgement-onl
 4. Sunday dinner sized for Monday-lunch leftovers (set `servings`).
 5. Lunches come from the previous night (covered by `servings`). **A Sun–Thu dinner's main must pack** (`lunchbox.fit` = `packs`/`separate`, see `rules.yaml → lunchbox_dinners`) — no tostadas, dressed leafy salads, scrambled eggs or bony fish the night before a school day.
 5b. **Dinner targets** (`rules.yaml → dinner_targets`): per serving, whole plate incl. extras — kcal range, protein floor and share, fiber floor. Derived from both adults' daily targets in `Preferences.md`.
-6. Fresh fish eaten within 2 days of purchase — front-load fish (Sun/Mon/Tue).
+6. **Fresh meat, poultry and fish: cooked within 2 days of purchase** (`rules.yaml → fresh_protein_max_days`). With the Friday-morning shop that means Sunday (and Saturday, bought the Friday before). Any later meat/fish night: **freeze it on Friday and thaw it in the fridge the night before** — a dated prep task ("Move the chicken from freezer to fridge"), or a separate fish-counter trip noted in `context[]`. `validate_plan.py` warns when neither is there.
+6b. **Cooked batch bases keep ~4 days** (`batch_max_days`): a Sunday batch is eaten by Wednesday's dinner (Thursday's lunchbox at the latest) — freeze a portion or cook it midweek otherwise.
+6c. **Kids' spice:** chili *cooked into* a dish (marinade, curry paste, sauce) can't be pulled afterwards. On Sun–Thu nights (dinner + next lunchbox) split a **mild kids' portion before the chili goes in** — a prep task like "Set aside 300 g thighs in a kids' marinade (paprika, no chili)". Léonie: zero chili. `validate_plan.py` warns when a school-night dish cooks chili in and the plan doesn't mention a kids' portion.
+6d. **Toddler lunchbox safety:** no whole seeds or nuts, whole grapes, cherry tomatoes or large round pieces for Léonie — quarter / pull her portion before seeds go on; check fish for pin bones.
 7. **Honor household dietary constraints** — `rules.yaml → exclude_if` plus `Preferences.md` nuance (lunchbox rules, dislikes). Meat/fish cap from `rules.yaml` unless the user relaxes it for this week (say so in `context[]`).
 
 ---
@@ -122,7 +129,7 @@ For every night, decide the components and where each recipe comes from, in prio
 
 **Every component approved in Phase 1 becomes a recipe in the slot's `recipes[]`** — including plain sides (rice, a cucumber salad). Never park a side in `extras` or mention it only in `context[]`: the app renders `recipes[]` only, so it disappears from the plan (this is how Wed 2026-10-07 shipped as a lone chicken).
 
-**Seasonal adaptation of a reused recipe:** if a library recipe's hero veg is out of season, swap it for an in-season one and update the recipe file before using it. A `seasons: ["spring"]` tag does not block summer use once adapted.
+**Seasonal adaptation of a reused recipe:** if a library recipe's hero veg is out of season, **add a version** (e.g. `fall`, label "Fall — peppers") with a `substitute` change and pin it (`slug#fall`). Don't edit the default: past plans reference it and would silently change. Add the season to `classification.seasons`; keep the title (it describes the default).
 
 **No-recipe nights (improvised dishes).** A night can be a dish with no formal recipe — e.g. "grilled whole fish" you'll wing on the plancha. Do NOT leave the slot empty (the fish would vanish from the grocery list). Instead give the slot a `title` and an `extras[]` list of what to buy (absolute quantities), with `recipes: []`. The grocery script aggregates `extras` exactly like recipe ingredients. See `plan_conventions.md` → "No-recipe night example". Use this whenever the user describes a night by its protein/technique rather than a recipe.
 
@@ -140,14 +147,16 @@ Follow `references/recipe_conventions.md` exactly. Key reminders from past misse
 - **Nutrition is computed, never typed:** after writing the file run `python3 scripts/nutrients.py --write <slug>` (also fills delta versions). If it reports an unmatched ingredient, add that ingredient to `TABLE` in `scripts/nutrients.py` (per-100 g USDA values + unit weights; `sync.sh` commits the table) and re-run. Every caloric ingredient needs a `qty`.
 - Set `role` and `lunchbox` (`fit` + `note`) — how it travels as next-day leftovers. Set all `restrictions` flags truthfully.
 - If the plain version misses the protein floor on its plate, add a `high-protein` delta version (more tofu/eggs/legumes/skyr, less oil/starch) and pin it.
+- **Never tune a recipe to the numbers.** Use realistic amounts (enough oil to roast vegetables properly, normal dressing ratios). If the plate then misses a target, change the plate (another side, a leaner main, less starch) — not the recipe's cooking sense.
 - Metric units only.
 - Vegetable minimums: raw greens ≥ 120 g/adult, cooked veg ≥ 200 g/adult.
 
 Write to `<data_root>/recipes/<slug>.json`, then **gate** (from `<repo_root>`):
 
 ```bash
-python3 scripts/nutrients.py --write <slug>…
-python3 scripts/validate_recipe.py <slug>…        # 0 errors
+python3 scripts/nutrients.py <slug>…             # shows the per-ingredient sum + anything unmatched
+python3 scripts/nutrients.py --write <slug>…     # stores it (prints ✗ for any version it couldn't compute)
+python3 scripts/validate_recipe.py <slug>…       # 0 errors
 ```
 
 Then re-run `plate_check.py` for the night(s) that use it — an estimate from Phase 1 is
@@ -161,8 +170,12 @@ If a composed dinner is one the family will want again, add it to `<data_root>/m
 ### 2.4 Batch bases + servings + prep
 
 - **Reusable bases:** 2–3 per week (grain, sauce, roasted veg), scaled across every meal that uses them. Goal: weeknights are assembly + 1 fresh element.
-- **Servings:** recipe `serves` + 2 adult portions for next-day lunch; Sunday extra for Monday's 2 adults + 2 kids; takeout `servings: 0`.
-- **Prep:** dated `PrepGroup`s, kitchen tasks only — no shopping errands. Mark farmers-market pickups on Sunday.
+- **Servings:** take them from `rules.yaml → servings` (portions cooked: household + next-day lunches; Sunday also covers Monday lunch). The plan's `servings` scales every recipe on the night, whatever each recipe's own `serves`. Differ only for a reason (guests) and say it in `context[]`. Takeout `servings: 0`.
+- **Prep:** dated `PrepGroup`s, kitchen tasks only — no shopping errands. Farmers-market pickups and fish-counter trips go in `context[]`. When active time exceeds a night's cap, move the work into a dated prep task; the validator's active-time warning then stays — name the prep task that covers it when you present the plan.
+- **Sunday lunch** (assembly only, 5 min): build it from the Sunday batch + leftovers; list anything to buy for it in the plan's `groceries` and describe it in `context[]`.
+- **Batch bases:** raw ingredients (dry quinoa, dry lentils, dry rice) go in `groceries`; the cooked base is listed in `reusableBases` and used by recipes as "Cooked quinoa" etc. (on the grocery list's "on hand" section).
+- **Drink:** `Inspiration.md` asks for one alcohol-free, low-sugar drink idea per dinner — add a one-line suggestion per night in `context[]` (from `data/drinks/` when one fits).
+- `cuisineRotation`: a free label for the week ("mixed", "mediterranean"…) — there is no rotation rule.
 
 ### 2.5 Assemble the plan JSON
 

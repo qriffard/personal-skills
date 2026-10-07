@@ -202,4 +202,4 @@ All values are **per serving** (i.e. for `serves: 4`, this is 1/4 of the total r
 
 ### `usage`
 
-Updated by weekly-plan step 2.6 when a recipe is planned for the week. Rating does not touch it.
+Updated by weekly-plan step 2.7 when a recipe is planned for the week. Rating does not touch it.

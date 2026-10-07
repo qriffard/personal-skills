@@ -67,7 +67,13 @@ pinned `#versions`), `context/Preferences.md`, `context/Schedule.md`, `context/r
   chili only on adult plates; no whole grapes / large round pieces for Léonie.
 - Two lunchboxes in a row of the same thing *(note)*.
 
-**D. Feasibility**
+**D. Food safety & feasibility**
+- Fresh meat/poultry/fish cooked within 2 days of the Friday shop, or a dated freeze/thaw
+  step exists. Cooked batch bases eaten within ~4 days of cooking (count the lunchbox day).
+- Chili cooked into a school-night dish (marinade, paste, sauce) → a mild kids' portion is
+  split off *before* it goes in, as a dated prep task. Léonie gets zero chili.
+- Toddler: no whole seeds/nuts, whole grapes, whole cherry tomatoes, pin bones in her
+  dinner or lunchbox portion — the plan or prep says how her portion is handled.
 - Active time within `max_active_min` per night, or the extra time is moved to a dated
   prep task that actually exists.
 - Prep tasks match the plan's own constraints (`context[]`: heat, no oven, stove only
@@ -84,6 +90,9 @@ pinned `#versions`), `context/Preferences.md`, `context/Schedule.md`, `context/r
 **F. Recipe review** (for new or edited recipes — also the target of a recipe-only review)
 - Ingredients and quantities are realistic for the stated `serves`; nothing caloric left
   without a quantity; method steps match the ingredient list (nothing used but missing).
+- Not tuned to hit numbers: enough oil to cook properly, normal dressing ratios, real
+  portion sizes. A recipe starved of fat to fit a kcal ceiling is blocking.
+- Equipment fits the quantities (12 eggs don't fit one pan — say two pans).
 - Nutrition was written by `nutrients.py --write` (validator clean ⇒ it matches).
 - `role` and `lunchbox.fit` are right for the dish (a dressed leafy salad is not `packs`).
 - Restriction flags truthful; title follows the `Dish · key · key` style.

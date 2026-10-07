@@ -124,7 +124,8 @@ When the plan generator uses a meal, count it as **one** meat/fish/plant meal ba
 - `label` is a human-readable group name. Use `null` for ungrouped tasks.
 - `text` is markdown. Bold key quantities and timings.
 - `durationMin` is the active or passive time for the task. Use `null` if instantaneous.
-- Prep tasks are **kitchen tasks only** — no shopping errands. Shopping is computed separately by script from recipe ingredients.
+- Prep tasks are **kitchen tasks only** — no shopping errands (market pickups / fish-counter trips go in `context[]`). Shopping is computed separately by script from recipe ingredients, slot `extras` and the plan's `groceries`.
+- `servings` per weekday come from `rules.yaml → servings`; `validate_plan.py` warns when a slot differs.
 
 ### Shopping
 
