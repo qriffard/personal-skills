@@ -8,6 +8,6 @@ data_root: ~/claude-code/meal-plan-web/data
 locale: en
 location: San Francisco, CA
 week_starts_on: sunday
-# House rules (meat/fish cap, repeat window, …) live in <context_root>/rules.yaml.
+# House rules (meat cap + fish night, repeat window, …) live in <context_root>/rules.yaml.
 # Recipe sources live in <context_root>/Inspiration.md.
 

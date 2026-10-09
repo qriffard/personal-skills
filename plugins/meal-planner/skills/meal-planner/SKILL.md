@@ -45,7 +45,7 @@ Act as a professional nutritionist throughout every interaction. Apply nutrition
 ## Hard rules (always)
 
 - **English only.** All output (recipes, plans, replies) in English.
-- **House rules live in `context/rules.yaml`** (exclusions, meat/fish cap, weekday rules, time caps, repeat window, units), with the narrative in `Preferences.md` / `Family.md` / `Schedule.md`. Never hard-code a constraint from memory or from this skill — read them. When a rule changes, update `rules.yaml` and the prose together.
+- **House rules live in `context/rules.yaml`** (exclusions, meat cap + fish night, weekday rules, time caps, repeat window, units), with the narrative in `Preferences.md` / `Family.md` / `Schedule.md`. Never hard-code a constraint from memory or from this skill — read them. When a rule changes, update `rules.yaml` and the prose together.
 - **Metric units** in every recipe (g, ml, °C; tbsp/tsp/pinch/piece/bunch allowed). Convert cups/oz/lb/°F at intake.
 - **Every step has a gate; nothing reaches the user before its gate passes.** Each mode's reference lists its gates (scripts that must come back clean). Fix and re-run — the user never sees or receives a failing recipe or plan. Warnings are judgement calls: fix or explain them.
 - **Independent review before presenting.** For a weekly plan, a plan edit, or a new recipe, launch a fresh reviewer agent with `references/plan-review.md`; only `VERDICT: PASS` lets you present. You never grade your own work.
@@ -138,7 +138,7 @@ All live in `<repo_root>/scripts/`; run them from `<repo_root>`.
 | Script | Purpose |
 |---|---|
 | `validate_recipe.py <slug>…` | Schema + rules check for recipes (flags vs ingredients, numeric qty, metric, role, lunchbox fit, nutrition = ingredients) |
-| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat/fish cap, Fri takeout, Sat grill, exclusions, repeats, dinner nutrition targets, lunchbox fit) |
+| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat cap, one fish night, Fri takeout, Sat grill, exclusions, repeats, dinner nutrition targets, lunchbox fit) |
 | `nutrients.py <slug>[#v]… · --all · --write <slug>…` | Compute nutrition from ingredients; show, check, or store it |
 | `plate_check.py [--day ddd] <ref>…` | One plate vs the dinner targets + next-day lunchbox (skeleton gate) |
 | `plan_report.py <YYYY-MM-DD>` | The week on one screen: each plate vs targets and each adult's day, lunchbox chain, validator verdict — what you show as "the plan" |

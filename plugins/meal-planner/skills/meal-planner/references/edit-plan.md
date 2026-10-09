@@ -54,7 +54,7 @@ python3 scripts/push_to_reminders.py <weekStart> --clear   # --clear wipes the s
 
 ## Hard rules during edits
 
-- New picks must pass `rules.yaml` (exclusions, meat/fish cap, weekday rules) — `validate_plan.py` checks it. Lunchbox nights stay nut-free.
+- New picks must pass `rules.yaml` (exclusions, meat cap + one fish night, weekday rules) — `validate_plan.py` checks it. Lunchbox nights stay nut-free.
 - New picks must respect `repeat_window_weeks` unless the user explicitly overrides. Compare by **slug**, ignoring any `#version` and resolving `mealSlug` to its component recipes.
 - Dropping a meal never removes the lunchbox source for the next school day without surfacing it to the user first.
 - A swapped-in Sun–Thu main must pack for the next day (`lunchbox.fit`); a swap that drops a side must replace it so the plate still meets `dinner_targets`.
