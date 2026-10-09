@@ -186,7 +186,7 @@ All values are **per serving** (i.e. for `serves: 4`, this is 1/4 of the total r
 ### `ingredients`
 
 - `qty` is a number (never a string like `"2-3"`). Use `null` only for "to taste" items (salt, spices, herbs) — a caloric ingredient without a qty counts as 0 kcal and fails validation.
-- Canned goods: give the can weight and say "drained" in the note — the calculator counts ~60 % drained weight.
+- Canned legumes: name them `Canned chickpeas` / `Canned black beans` / `Cannellini beans`, give the **can weight** in g, and write the note as `2 × 400 g cans (can weight), drained and rinsed — about 480 g drained`. The calculator counts ~60 % of the can weight when the note says can + drained, and the grocery list prints that can weight in grams (divide by 400 for the number of cans). Never name a can-weight item `Cooked …` — `Cooked chickpeas` means home-cooked/drained weight and uses another table row.
 - `unit` is **metric**: `g`, `kg`, `ml`, `l`, plus `tbsp`, `tsp`, `pinch`, `piece`, `bunch`, `clove`. Never cup/oz/lb/inch. Use `null` for unitless counts.
 - `note` is markdown. Use for prep state ("pressed 30 min"), optional flags, or substitutions.
 
