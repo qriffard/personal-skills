@@ -41,7 +41,7 @@ On-hand items are **load-bearing**: they anchor specific nights and get **exclud
 1. `<context_root>/Family.md`
 2. `<context_root>/Preferences.md` — hard constraints + taste dislikes
 3. `<context_root>/Schedule.md` — week structure, hard rules, shopping cadence, seasonality
-4. `<context_root>/Inspiration.md` — sources
+4. `<context_root>/Inspiration.md` — favorite sources and cuisines (a starting point, not a whitelist)
 4b. `<context_root>/rules.yaml` — the checkable rules (exclusions, caps, weekday rules)
 5. `<data_root>/plans/` — plans whose `weekStart` falls in the last `rules.yaml → repeat_window_weeks` **calendar** weeks (not "the last N files" — there can be gaps). Resolve each slot's recipes (`mealSlug` → `data/meals.json`). Only **mains** must not repeat (`repeat_roles`); sides, bases, sauces and salads are staples and may.
 6. `<data_root>/recipes/index.json` — library with ratings · `<data_root>/meals.json` — composed meals
@@ -54,7 +54,7 @@ Read the "Right now" block in `Schedule.md` and its `> _Updated: YYYY-MM_` marke
 
 ### 1.4 Propose a rough day-by-day plan
 
-Present a **table**, one line per night, concept-level only — no recipe files yet. Every night names **its full plate** — main **+ veg + starch/legume** — or is explicitly a one-dish meal that already contains all three. **Protein first:** pick the plant main's `#high-protein` version or add a protein side (`tofu-bites-soy-ginger`, `tempeh-crumble-smoky`, `edamame-cucumber-herb-salad`, `lemony-white-bean-salad`, `skyr-herb-sauce`, `edamame-lime-salt`, …) before reaching for meat:
+Present a **table**, one line per night, concept-level only — no recipe files yet. Every night names **its full plate** — main **+ veg + starch/legume** — or is explicitly a one-dish meal that already contains all three. **Protein first:** pick the plant main's `#high-protein` version or add a protein side (`tofu-bites-soy-ginger`, `tempeh-crumble-smoky`, `skyr-herb-sauce`, `cold-lentil-salad-herbs-vinaigrette`, …) before reaching for meat:
 
 | Day | Main | Veg | Starch / legume | ≈ kcal · P · fiber |
 |---|---|---|---|---|
@@ -79,6 +79,11 @@ exist yet goes in as `--est "warm-lentil-salad=300/14/9"` (per-serving kcal/prot
 estimated from similar library recipes — confirmed in Phase 2). **Every night must exit 0
 before you show the table.** Put the numbers in the table's last column. Honor the hard
 rules (below) while drafting. Show your protein count (e.g. "meat 2/2: Sun + Sat · fish 1/1: Wed ✓"). Mark which nights use on-hand items.
+
+**Flavor variety.** The library is a convenience, not the menu — leaning on it makes every week taste the same. Before showing the table:
+- **No flavor profile on more than 2 cooked nights** (e.g. Indian spice/dal, Thai coconut-lime, Middle-Eastern yogurt-herb, soy-ginger-sesame). Count by dominant flavor, not by recipe.
+- **At least 2 nights new to the library**, and at least 1 from a cuisine or flavor profile not cooked in the last `repeat_window_weeks` — beyond `Inspiration.md`'s list is encouraged (Korean, Mexican, Persian, Georgian, Peruvian, North African, Sichuan, Turkish, Basque, Vietnamese…). Adapt them to the hard rules (no garlic, no lamb, nut-free lunchbox, Pauline's dislikes).
+- Name each night's flavor profile in the table so the user sees the spread.
 
 ### 1.5 Iterate until approved — this is the heart of the mode
 
@@ -120,8 +125,10 @@ For every night, decide the components and where each recipe comes from, in prio
 
 1. Library recipe (`recipes/index.json`) rated 4–5, not cooked in last 4 weeks
 2. Library recipe rated 3 or unrated, not cooked in last 4 weeks
-3. New recipe from an `Inspiration.md` source
+3. New recipe from a reputable source — `Inspiration.md` favorites or any other
 4. Original recipe (`source.type: "original"`)
+
+This order picks *among* candidates for a night; it does not override **Flavor variety** (1.4) — the week's new-recipe nights come from 3–4 even when a library recipe would fit.
 
 **Exclude:** `rating.score: 0`, cooked within `repeat_window_weeks`, any recipe with a flag listed in `rules.yaml → exclude_if` (e.g. `restrictions.garlic: true`).
 
@@ -247,6 +254,7 @@ When a preference surfaces in conversation that isn't in the context files:
 - [ ] Rough plan approved **before** any file was written
 - [ ] Any newly-surfaced preference saved to a context file
 - [ ] Seasonality fresh; out-of-season heroes swapped
+- [ ] Flavor variety: no profile on > 2 nights · ≥ 2 new recipes · ≥ 1 cuisine not cooked in the repeat window
 - [ ] No recipe repeated from last 4 weeks; rating 0 excluded
 - [ ] Household dietary constraints from `Preferences.md` applied (allergies, aversions, lunchbox rules)
 - [ ] Mon–Fri ≤ 20 min · Sun lunch assembly · Fri takeout · Sat grill
