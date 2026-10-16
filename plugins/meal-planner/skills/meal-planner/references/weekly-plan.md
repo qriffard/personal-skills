@@ -61,7 +61,7 @@ Present a **table**, one line per night, concept-level only — no recipe files 
 | Sun | Grilled chicken | Peach/burrata/tomato salad | Grilled bread *(farmers market)* | 620 · 42 · 5 |
 | Mon | Tofu · fennel · orange · quinoa bowl *(on hand, one-dish)* | — | — | 490 · 24 · 7 |
 | … | … | … | … | … |
-| Fri | Takeout | | | |
+| Fri | … | … | … | … |
 | Sat | Plancha — … | … | … | … |
 
 **Gate — check every night's plate with the script, not by mental arithmetic** (from `<repo_root>`):
@@ -105,7 +105,7 @@ These mirror `rules.yaml` (checked by `validate_plan.py`) plus the judgement-onl
 
 1. Active-time caps per night from `rules.yaml → max_active_min` (Mon ≤ 15 assembly-leaning, Tue–Thu ≤ 20).
 2. Sunday lunch ≤ 5 min, assembly only (music lesson 12:30).
-3. **Saturday dinner = gas grill** (`rules.yaml → weekday_rules.sat.technique_any`). **Friday = takeout.**
+3. **Saturday dinner = gas grill** (`rules.yaml → weekday_rules.sat.technique_any`). **Friday is a regular cooked night** (≤ 20 min, no next-day lunchbox) — takeout only when the user asks.
 4. Sunday dinner sized for Monday-lunch leftovers (set `servings`).
 5. Lunches come from the previous night (covered by `servings`). **A Sun–Thu dinner's main must pack** (`lunchbox.fit` = `packs`/`separate`, see `rules.yaml → lunchbox_dinners`) — no tostadas, dressed leafy salads, scrambled eggs or bony fish the night before a school day.
 5b. **Dinner targets** (`rules.yaml → dinner_targets`): per serving, whole plate incl. extras — kcal range, protein floor and share, fiber floor. Derived from both adults' daily targets in `Preferences.md`.
@@ -257,7 +257,7 @@ When a preference surfaces in conversation that isn't in the context files:
 - [ ] Flavor variety: no profile on > 2 nights · ≥ 2 new recipes · ≥ 1 cuisine not cooked in the repeat window
 - [ ] No recipe repeated from last 4 weeks; rating 0 excluded
 - [ ] Household dietary constraints from `Preferences.md` applied (allergies, aversions, lunchbox rules)
-- [ ] Mon–Fri ≤ 20 min · Sun lunch assembly · Fri takeout · Sat grill
+- [ ] Mon–Fri ≤ 20 min · Sun lunch assembly · Sat grill
 - [ ] ≤ 2 meat + exactly 1 fish (unless user relaxed); meal counts as one slot
 - [ ] Every night = main + veg + starch/legume (or a one-dish meal); `plate_check.py` passed in Phase 1
 - [ ] Protein from plant sources first (`#high-protein` versions, protein sides); meat ≤ cap, one fish night

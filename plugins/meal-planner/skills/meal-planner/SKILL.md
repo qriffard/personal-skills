@@ -138,7 +138,7 @@ All live in `<repo_root>/scripts/`; run them from `<repo_root>`.
 | Script | Purpose |
 |---|---|
 | `validate_recipe.py <slug>…` | Schema + rules check for recipes (flags vs ingredients, numeric qty, metric, role, lunchbox fit, nutrition = ingredients) |
-| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat cap, one fish night, Fri takeout, Sat grill, exclusions, repeats, dinner nutrition targets, lunchbox fit) |
+| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat cap, one fish night, Sat grill, exclusions, repeats, dinner nutrition targets, lunchbox fit) |
 | `nutrients.py <slug>[#v]… · --all · --write <slug>…` | Compute nutrition from ingredients; show, check, or store it |
 | `plate_check.py [--day ddd] <ref>…` | One plate vs the dinner targets + next-day lunchbox (skeleton gate) |
 | `plan_report.py <YYYY-MM-DD>` | The week on one screen: each plate vs targets and each adult's day, lunchbox chain, validator verdict — what you show as "the plan" |

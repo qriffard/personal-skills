@@ -78,7 +78,7 @@ pinned `#versions`), `context/Preferences.md`, `context/Schedule.md`, `context/r
   prep task that actually exists.
 - Prep tasks match the plan's own constraints (`context[]`: heat, no oven, stove only
   before X…), marinades start early enough, batch bases are scaled to every use.
-- Fresh fish eaten within 2 days of purchase; Friday takeout; Saturday on the grill.
+- Fresh fish eaten within 2 days of purchase; Saturday on the grill.
 - Grocery list: no absurd quantities, no item bought twice under two names that could be
   one *(note)*, batch raw ingredients in `groceries` (not `extras`).
 

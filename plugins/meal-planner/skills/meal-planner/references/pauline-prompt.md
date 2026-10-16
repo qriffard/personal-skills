@@ -1,6 +1,6 @@
 # Historical context — Pauline's original prompt (2026-05-07)
 
-This is the request that started the meal-planner, kept for background. **It is not a source of truth.** Some of it is out of date (the 3-month wheelchair period, "Friday gas grill" — now Saturday grill + Friday takeout, the style anchors). The current rules live in `rules.yaml` (checkable) and `Preferences.md` / `Schedule.md` / `Family.md` (narrative); when they disagree with this file, they win.
+This is the request that started the meal-planner, kept for background. **It is not a source of truth.** Some of it is out of date (the 3-month wheelchair period, "Friday gas grill" — now Saturday grill, Friday a regular night, the style anchors). The current rules live in `rules.yaml` (checkable) and `Preferences.md` / `Schedule.md` / `Family.md` (narrative); when they disagree with this file, they win.
 
 ---
 

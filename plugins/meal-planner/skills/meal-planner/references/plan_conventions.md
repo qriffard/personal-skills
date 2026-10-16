@@ -62,7 +62,7 @@ Check a plan with `python3 scripts/validate_plan.py <weekStart>` from `<repo_roo
 
 | Field | Notes |
 |---|---|
-| `date` | `YYYY-MM-DD`. One entry per dinner slot (Sun–Sat). Friday is always takeout. |
+| `date` | `YYYY-MM-DD`. One entry per dinner slot (Sun–Sat). |
 | `recipes` | Ordered array of recipe slugs (inline). First entry is the main; rest are sides. `[]` when `takeout` or when using `mealSlug`. A slug may pin a recipe version as `slug#versionId` (e.g. `tofu-snap-peas-sesame-ginger#high-protein`); no `#` = default version. |
 | `mealSlug` | Optional. References a composed meal in `data/meals.json`. When set, its `recipes` provide the components — leave `recipes: []`. Counts as ONE slot; protein from the meal's hero recipe. |
 | `title` | Optional. Label for a **no-recipe night** (e.g. `"Grilled whole fish"`) so the card has a name when there's no main recipe. |
