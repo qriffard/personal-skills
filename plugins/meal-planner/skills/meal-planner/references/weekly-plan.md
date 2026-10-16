@@ -103,9 +103,9 @@ Only when the user signals the skeleton is good do you move to Phase 2.
 
 These mirror `rules.yaml` (checked by `validate_plan.py`) plus the judgement-only rules from `Schedule.md`:
 
-1. Active-time caps per night from `rules.yaml → max_active_min` (Mon ≤ 15 assembly-leaning, Tue–Thu ≤ 20).
+1. Active-time targets per night from `rules.yaml → max_active_min` (Mon ≤ 15 assembly-leaning, Tue–Fri ≤ 20) — **soft**: aim for them, going over is fine; mention it.
 2. Sunday lunch ≤ 5 min, assembly only (music lesson 12:30).
-3. **Saturday dinner = gas grill** (`rules.yaml → weekday_rules.sat.technique_any`). **Friday is a regular cooked night** (≤ 20 min, no next-day lunchbox) — takeout only when the user asks.
+3. **Saturday dinner = gas grill** (`rules.yaml → weekday_rules.sat.technique_any`). **Friday is a regular cooked night** (no next-day lunchbox) — takeout only when the user asks.
 4. Sunday dinner sized for Monday-lunch leftovers (set `servings`).
 5. Lunches come from the previous night (covered by `servings`). **A Sun–Thu dinner's main must pack** (`lunchbox.fit` = `packs`/`separate`, see `rules.yaml → lunchbox_dinners`) — no tostadas, dressed leafy salads, scrambled eggs or bony fish the night before a school day.
 5b. **Dinner targets** (`rules.yaml → dinner_targets`): per serving, whole plate incl. extras — kcal range, protein floor and share, fiber floor. Derived from both adults' daily targets in `Preferences.md`.
@@ -178,7 +178,7 @@ If a composed dinner is one the family will want again, add it to `<data_root>/m
 
 - **Reusable bases:** 2–3 per week (grain, sauce, roasted veg), scaled across every meal that uses them. Goal: weeknights are assembly + 1 fresh element.
 - **Servings:** take them from `rules.yaml → servings` (portions cooked: household + next-day lunches; Sunday also covers Monday lunch). The plan's `servings` scales every recipe on the night, whatever each recipe's own `serves`. Differ only for a reason (guests) and say it in `context[]`. Takeout `servings: 0`.
-- **Prep:** dated `PrepGroup`s, kitchen tasks only — no shopping errands. Farmers-market pickups and fish-counter trips go in `context[]`. When active time exceeds a night's cap, move the work into a dated prep task; the validator's active-time warning then stays — name the prep task that covers it when you present the plan.
+- **Prep:** dated `PrepGroup`s, kitchen tasks only — no shopping errands. Farmers-market pickups and fish-counter trips go in `context[]`. Active time over a night's target is a soft warning: move work into a dated prep task when that's easy, otherwise just say which nights run long.
 - **Sunday lunch** (assembly only, 5 min): build it from the Sunday batch + leftovers; list anything to buy for it in the plan's `groceries` and describe it in `context[]`.
 - **Batch bases:** raw ingredients (dry quinoa, dry lentils, dry rice) go in `groceries`; the cooked base is listed in `reusableBases` and used by recipes as "Cooked quinoa" etc. (on the grocery list's "on hand" section).
 - **Drink:** `Inspiration.md` asks for one alcohol-free, low-sugar drink idea per dinner — add a one-line suggestion per night in `context[]` (from `data/drinks/` when one fits).
@@ -200,7 +200,7 @@ Fix every error and re-run until clean; **the user never sees a plan that fails.
 
 - *Off nutrition target* → add the missing side **as a recipe**, pin a `#high-protein` / `#lean` version, or trim the starch/oil. `override` only if the user explicitly accepts it for that night.
 - *Lunchbox doesn't pack* → move that main to Fri/Sat, or pick another main.
-- Warnings: fix, or say why it stands (e.g. a repeat they asked for). Active time over the cap → move the work into a dated prep task.
+- Warnings: fix, or say why it stands (e.g. a repeat they asked for). Active time over the target is soft — mention it; move work to prep when easy.
 - Read `plan_report.py` critically against the approved skeleton: every component present, weekly average near `dinner_share` of each adult's day, the lunchbox column all packable, prep consistent with `context[]`.
 
 ### 2.6 Independent review
@@ -257,7 +257,7 @@ When a preference surfaces in conversation that isn't in the context files:
 - [ ] Flavor variety: no profile on > 2 nights · ≥ 2 new recipes · ≥ 1 cuisine not cooked in the repeat window
 - [ ] No recipe repeated from last 4 weeks; rating 0 excluded
 - [ ] Household dietary constraints from `Preferences.md` applied (allergies, aversions, lunchbox rules)
-- [ ] Mon–Fri ≤ 20 min · Sun lunch assembly · Sat grill
+- [ ] Sun lunch assembly · Sat grill · (soft) Mon–Fri ≈ ≤ 20 min active
 - [ ] ≤ 2 meat + exactly 1 fish (unless user relaxed); meal counts as one slot
 - [ ] Every night = main + veg + starch/legume (or a one-dish meal); `plate_check.py` passed in Phase 1
 - [ ] Protein from plant sources first (`#high-protein` versions, protein sides); meat ≤ cap, one fish night

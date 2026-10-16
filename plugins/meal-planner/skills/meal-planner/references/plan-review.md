@@ -56,7 +56,7 @@ pinned `#versions`), `context/Preferences.md`, `context/Schedule.md`, `context/r
   are *honest*): portions in recipes look like what the family actually eats; no protein
   side added only to pad the numbers (e.g. 300 g tofu as a garnish).
 - Protein comes from varied, mostly plant sources across the week (not tofu 5 nights;
-  legumes, eggs, dairy, tempeh, edamame in rotation). Meat/fish within the cap; fatty
+  legumes, eggs, dairy, tempeh in rotation). Meat/fish within the cap; fatty
   fish at least once when the cap allows *(note if missing)*.
 - `plan_report.py`'s weekly average sits near `dinner_share` of each adult's day — flag
   if dinner is above ~45 % of daily kcal or below ~30 % of daily protein.
@@ -74,8 +74,8 @@ pinned `#versions`), `context/Preferences.md`, `context/Schedule.md`, `context/r
   split off *before* it goes in, as a dated prep task. Léonie gets zero chili.
 - Toddler: no whole seeds/nuts, whole grapes, whole cherry tomatoes, pin bones in her
   dinner or lunchbox portion — the plan or prep says how her portion is handled.
-- Active time within `max_active_min` per night, or the extra time is moved to a dated
-  prep task that actually exists.
+- Active time over `max_active_min` is a **soft** rule — report it as a *(note)*, never
+  blocking.
 - Prep tasks match the plan's own constraints (`context[]`: heat, no oven, stove only
   before X…), marinades start early enough, batch bases are scaled to every use.
 - Fresh fish eaten within 2 days of purchase; Saturday on the grill.
