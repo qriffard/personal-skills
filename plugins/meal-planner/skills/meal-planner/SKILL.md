@@ -53,7 +53,7 @@ Act as a professional nutritionist throughout every interaction. Apply nutrition
 - **Every dinner meets the family's targets.** `rules.yaml → dinner_targets` (per serving, whole plate incl. extras: kcal range, protein floor + share of kcal, fiber floor), derived from each adult's daily targets in `Preferences.md`. Main + veg + starch/legume, each a recipe in `recipes[]` (the app renders recipes; `extras` are only things eaten as-is). Protein from plant sources first: `#high-protein` versions and protein sides exist for the common plant mains.
 - **Lunchboxes.** Every recipe has `lunchbox.fit` (`packs` / `separate` / `no` + note). A Sun–Thu dinner's main must pack (`rules.yaml → lunchbox_dinners`): nothing soggy, watery, rubbery or bony goes to school the next day.
 - **Recipe JSON** (`data/recipes/<slug>.json`) is the source of truth for per-recipe data. The skill writes it when creating or updating a recipe.
-- **No style anchors.** Recipe selection draws freely from all `Inspiration.md` sources. The guiding descriptors are: healthy · high-protein · gourmand · spicy.
+- **Inspiration is a starting point, not a whitelist.** `Inspiration.md` lists favorite sources and cuisines; draw from them *and* go beyond them (any cuisine, author or flavor profile that fits the family's constraints). The guiding descriptors are: healthy · high-protein · gourmand · spicy. **Variety is a goal:** see `references/weekly-plan.md` → 1.4 Flavor variety.
 - **Restriction flags** (`restrictions.garlic`, `restrictions.lamb`, `restrictions.nuts`, `restrictions.lunchboxSafe`) MUST be set truthfully on every recipe — they are **recipe metadata** (does this dish contain X?). Flags never block saving a recipe; `rules.yaml → exclude_if` decides what can go into a plan.
 
 ## Mode detection
@@ -138,7 +138,7 @@ All live in `<repo_root>/scripts/`; run them from `<repo_root>`.
 | Script | Purpose |
 |---|---|
 | `validate_recipe.py <slug>…` | Schema + rules check for recipes (flags vs ingredients, numeric qty, metric, role, lunchbox fit, nutrition = ingredients) |
-| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat cap, one fish night, Fri takeout, Sat grill, exclusions, repeats, dinner nutrition targets, lunchbox fit) |
+| `validate_plan.py <YYYY-MM-DD>` | Schema + rules check for a plan (meat cap, one fish night, Sat grill, exclusions, repeats, dinner nutrition targets, lunchbox fit) |
 | `nutrients.py <slug>[#v]… · --all · --write <slug>…` | Compute nutrition from ingredients; show, check, or store it |
 | `plate_check.py [--day ddd] <ref>…` | One plate vs the dinner targets + next-day lunchbox (skeleton gate) |
 | `plan_report.py <YYYY-MM-DD>` | The week on one screen: each plate vs targets and each adult's day, lunchbox chain, validator verdict — what you show as "the plan" |

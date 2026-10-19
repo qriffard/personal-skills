@@ -41,7 +41,7 @@ On-hand items are **load-bearing**: they anchor specific nights and get **exclud
 1. `<context_root>/Family.md`
 2. `<context_root>/Preferences.md` — hard constraints + taste dislikes
 3. `<context_root>/Schedule.md` — week structure, hard rules, shopping cadence, seasonality
-4. `<context_root>/Inspiration.md` — sources
+4. `<context_root>/Inspiration.md` — favorite sources and cuisines (a starting point, not a whitelist)
 4b. `<context_root>/rules.yaml` — the checkable rules (exclusions, caps, weekday rules)
 5. `<data_root>/plans/` — plans whose `weekStart` falls in the last `rules.yaml → repeat_window_weeks` **calendar** weeks (not "the last N files" — there can be gaps). Resolve each slot's recipes (`mealSlug` → `data/meals.json`). Only **mains** must not repeat (`repeat_roles`); sides, bases, sauces and salads are staples and may.
 6. `<data_root>/recipes/index.json` — library with ratings · `<data_root>/meals.json` — composed meals
@@ -54,14 +54,14 @@ Read the "Right now" block in `Schedule.md` and its `> _Updated: YYYY-MM_` marke
 
 ### 1.4 Propose a rough day-by-day plan
 
-Present a **table**, one line per night, concept-level only — no recipe files yet. Every night names **its full plate** — main **+ veg + starch/legume** — or is explicitly a one-dish meal that already contains all three. **Protein first:** pick the plant main's `#high-protein` version or add a protein side (`tofu-bites-soy-ginger`, `tempeh-crumble-smoky`, `edamame-cucumber-herb-salad`, `lemony-white-bean-salad`, `skyr-herb-sauce`, `edamame-lime-salt`, …) before reaching for meat:
+Present a **table**, one line per night, concept-level only — no recipe files yet. Every night names **its full plate** — main **+ veg + starch/legume** — or is explicitly a one-dish meal that already contains all three. **Protein first:** pick the plant main's `#high-protein` version or add a protein side (`tofu-bites-soy-ginger`, `tempeh-crumble-smoky`, `skyr-herb-sauce`, `cold-lentil-salad-herbs-vinaigrette`, …) before reaching for meat:
 
 | Day | Main | Veg | Starch / legume | ≈ kcal · P · fiber |
 |---|---|---|---|---|
 | Sun | Grilled chicken | Peach/burrata/tomato salad | Grilled bread *(farmers market)* | 620 · 42 · 5 |
 | Mon | Tofu · fennel · orange · quinoa bowl *(on hand, one-dish)* | — | — | 490 · 24 · 7 |
 | … | … | … | … | … |
-| Fri | Takeout | | | |
+| Fri | … | … | … | … |
 | Sat | Plancha — … | … | … | … |
 
 **Gate — check every night's plate with the script, not by mental arithmetic** (from `<repo_root>`):
@@ -79,6 +79,11 @@ exist yet goes in as `--est "warm-lentil-salad=300/14/9"` (per-serving kcal/prot
 estimated from similar library recipes — confirmed in Phase 2). **Every night must exit 0
 before you show the table.** Put the numbers in the table's last column. Honor the hard
 rules (below) while drafting. Show your protein count (e.g. "meat 2/2: Sun + Sat · fish 1/1: Wed ✓"). Mark which nights use on-hand items.
+
+**Flavor variety.** The library is a convenience, not the menu — leaning on it makes every week taste the same. Before showing the table:
+- **No flavor profile on more than 2 cooked nights** (e.g. Indian spice/dal, Thai coconut-lime, Middle-Eastern yogurt-herb, soy-ginger-sesame). Count by dominant flavor, not by recipe.
+- **At least 2 nights new to the library**, and at least 1 from a cuisine or flavor profile not cooked in the last `repeat_window_weeks` — beyond `Inspiration.md`'s list is encouraged (Korean, Mexican, Persian, Georgian, Peruvian, North African, Sichuan, Turkish, Basque, Vietnamese…). Adapt them to the hard rules (no garlic, no lamb, nut-free lunchbox, Pauline's dislikes).
+- Name each night's flavor profile in the table so the user sees the spread.
 
 ### 1.5 Iterate until approved — this is the heart of the mode
 
@@ -98,9 +103,9 @@ Only when the user signals the skeleton is good do you move to Phase 2.
 
 These mirror `rules.yaml` (checked by `validate_plan.py`) plus the judgement-only rules from `Schedule.md`:
 
-1. Active-time caps per night from `rules.yaml → max_active_min` (Mon ≤ 15 assembly-leaning, Tue–Thu ≤ 20).
+1. Active-time targets per night from `rules.yaml → max_active_min` (Mon ≤ 15 assembly-leaning, Tue–Fri ≤ 20) — **soft**: aim for them, going over is fine; mention it.
 2. Sunday lunch ≤ 5 min, assembly only (music lesson 12:30).
-3. **Saturday dinner = gas grill** (`rules.yaml → weekday_rules.sat.technique_any`). **Friday = takeout.**
+3. **Saturday dinner = gas grill** (`rules.yaml → weekday_rules.sat.technique_any`). **Friday is a regular cooked night** (no next-day lunchbox) — takeout only when the user asks.
 4. Sunday dinner sized for Monday-lunch leftovers (set `servings`).
 5. Lunches come from the previous night (covered by `servings`). **A Sun–Thu dinner's main must pack** (`lunchbox.fit` = `packs`/`separate`, see `rules.yaml → lunchbox_dinners`) — no tostadas, dressed leafy salads, scrambled eggs or bony fish the night before a school day.
 5b. **Dinner targets** (`rules.yaml → dinner_targets`): per serving, whole plate incl. extras — kcal range, protein floor and share, fiber floor. Derived from both adults' daily targets in `Preferences.md`.
@@ -120,8 +125,10 @@ For every night, decide the components and where each recipe comes from, in prio
 
 1. Library recipe (`recipes/index.json`) rated 4–5, not cooked in last 4 weeks
 2. Library recipe rated 3 or unrated, not cooked in last 4 weeks
-3. New recipe from an `Inspiration.md` source
+3. New recipe from a reputable source — `Inspiration.md` favorites or any other
 4. Original recipe (`source.type: "original"`)
+
+This order picks *among* candidates for a night; it does not override **Flavor variety** (1.4) — the week's new-recipe nights come from 3–4 even when a library recipe would fit.
 
 **Exclude:** `rating.score: 0`, cooked within `repeat_window_weeks`, any recipe with a flag listed in `rules.yaml → exclude_if` (e.g. `restrictions.garlic: true`).
 
@@ -171,7 +178,7 @@ If a composed dinner is one the family will want again, add it to `<data_root>/m
 
 - **Reusable bases:** 2–3 per week (grain, sauce, roasted veg), scaled across every meal that uses them. Goal: weeknights are assembly + 1 fresh element.
 - **Servings:** take them from `rules.yaml → servings` (portions cooked: household + next-day lunches; Sunday also covers Monday lunch). The plan's `servings` scales every recipe on the night, whatever each recipe's own `serves`. Differ only for a reason (guests) and say it in `context[]`. Takeout `servings: 0`.
-- **Prep:** dated `PrepGroup`s, kitchen tasks only — no shopping errands. Farmers-market pickups and fish-counter trips go in `context[]`. When active time exceeds a night's cap, move the work into a dated prep task; the validator's active-time warning then stays — name the prep task that covers it when you present the plan.
+- **Prep:** dated `PrepGroup`s, kitchen tasks only — no shopping errands. Farmers-market pickups and fish-counter trips go in `context[]`. Active time over a night's target is a soft warning: move work into a dated prep task when that's easy, otherwise just say which nights run long.
 - **Sunday lunch** (assembly only, 5 min): build it from the Sunday batch + leftovers; list anything to buy for it in the plan's `groceries` and describe it in `context[]`.
 - **Batch bases:** raw ingredients (dry quinoa, dry lentils, dry rice) go in `groceries`; the cooked base is listed in `reusableBases` and used by recipes as "Cooked quinoa" etc. (on the grocery list's "on hand" section).
 - **Drink:** `Inspiration.md` asks for one alcohol-free, low-sugar drink idea per dinner — add a one-line suggestion per night in `context[]` (from `data/drinks/` when one fits).
@@ -193,7 +200,7 @@ Fix every error and re-run until clean; **the user never sees a plan that fails.
 
 - *Off nutrition target* → add the missing side **as a recipe**, pin a `#high-protein` / `#lean` version, or trim the starch/oil. `override` only if the user explicitly accepts it for that night.
 - *Lunchbox doesn't pack* → move that main to Fri/Sat, or pick another main.
-- Warnings: fix, or say why it stands (e.g. a repeat they asked for). Active time over the cap → move the work into a dated prep task.
+- Warnings: fix, or say why it stands (e.g. a repeat they asked for). Active time over the target is soft — mention it; move work to prep when easy.
 - Read `plan_report.py` critically against the approved skeleton: every component present, weekly average near `dinner_share` of each adult's day, the lunchbox column all packable, prep consistent with `context[]`.
 
 ### 2.6 Independent review
@@ -247,9 +254,10 @@ When a preference surfaces in conversation that isn't in the context files:
 - [ ] Rough plan approved **before** any file was written
 - [ ] Any newly-surfaced preference saved to a context file
 - [ ] Seasonality fresh; out-of-season heroes swapped
+- [ ] Flavor variety: no profile on > 2 nights · ≥ 2 new recipes · ≥ 1 cuisine not cooked in the repeat window
 - [ ] No recipe repeated from last 4 weeks; rating 0 excluded
 - [ ] Household dietary constraints from `Preferences.md` applied (allergies, aversions, lunchbox rules)
-- [ ] Mon–Fri ≤ 20 min · Sun lunch assembly · Fri takeout · Sat grill
+- [ ] Sun lunch assembly · Sat grill · (soft) Mon–Fri ≈ ≤ 20 min active
 - [ ] ≤ 2 meat + exactly 1 fish (unless user relaxed); meal counts as one slot
 - [ ] Every night = main + veg + starch/legume (or a one-dish meal); `plate_check.py` passed in Phase 1
 - [ ] Protein from plant sources first (`#high-protein` versions, protein sides); meat ≤ cap, one fish night

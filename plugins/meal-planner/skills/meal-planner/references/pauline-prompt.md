@@ -1,6 +1,6 @@
 # Historical context — Pauline's original prompt (2026-05-07)
 
-This is the request that started the meal-planner, kept for background. **It is not a source of truth.** Some of it is out of date (the 3-month wheelchair period, "Friday gas grill" — now Saturday grill + Friday takeout, the style anchors). The current rules live in `rules.yaml` (checkable) and `Preferences.md` / `Schedule.md` / `Family.md` (narrative); when they disagree with this file, they win.
+This is the request that started the meal-planner, kept for background. **It is not a source of truth.** Some of it is out of date (the 3-month wheelchair period, "Friday gas grill" — now Saturday grill, Friday a regular night, the style anchors). The current rules live in `rules.yaml` (checkable) and `Preferences.md` / `Schedule.md` / `Family.md` (narrative); when they disagree with this file, they win.
 
 ---
 
@@ -65,9 +65,9 @@ This is the request that started the meal-planner, kept for background. **It is 
 |---|---|
 | Style anchors (Ottolenghi + Six Seasons) | `Preferences.md` → General orientation → Style anchors |
 | Wheelchair / solo-cook period | `Preferences.md` → Current operating mode |
-| 15-20 min weeknight cap | `Schedule.md` → Hard rules (rule 1) |
-| Sunday lunch ≤ 5 min, music lesson | `Schedule.md` → Hard rules (rule 2) |
-| Friday gas grill | `Schedule.md` → Hard rules (rule 3) |
+| 15-20 min weeknight cap | `Schedule.md` → Soft preferences (now a soft target) |
+| Sunday lunch ≤ 5 min, music lesson | `Schedule.md` → Hard rules (rule 1) |
+| Friday gas grill | `Schedule.md` → Hard rules (rule 2 — now Saturday) |
 | Thursday evening plan delivery | `Schedule.md` → Cadence |
 | Friday + Sunday shopping | `Schedule.md` → Cadence + Shopping split |
 | Léonie eats like adults | `Preferences.md` → Kids — lunchbox rules |
