@@ -94,7 +94,7 @@ Expect several rounds. The user will swap days, change proteins, reject ideas, a
 - **Proactively flag a hard-constraint risk** (e.g. garlic in linguiça/tzatziki) and offer to adapt — but accept the user's override if they say it's fine.
 - A **composed dinner** (main + sides) is normal — keep it as one night with multiple components.
 - **What counts as a full plate:** protein + vegetable + starch/legume. A legume main (dal, chana, shakshuka with chickpeas, lentil salad) *is* the starch/legume component — it still needs a vegetable (in the dish, or a side). A recipe with role `main` may be served as a side (palak dal next to tikka) — fine.
-- **Meat is a ceiling, fish is a quota** (`rules.yaml → max_meat_per_week`, `fish_per_week`): at most 2 meat nights — "plant-forward" in a wish means stay at or under it — and exactly 1 fish night every week (favor fatty fish).
+- **Meat is a ceiling, fish is a quota** (`rules.yaml → max_meat_per_week`, `fish_per_week`): at most `max_meat_per_week` meat nights (currently 3) — "plant-forward" in a wish means stay at or under it — and exactly 1 fish night every week (favor fatty fish).
 - Re-check the meat cap and the fish night after every swap.
 
 Only when the user signals the skeleton is good do you move to Phase 2.
@@ -258,7 +258,7 @@ When a preference surfaces in conversation that isn't in the context files:
 - [ ] No recipe repeated from last 4 weeks; rating 0 excluded
 - [ ] Household dietary constraints from `Preferences.md` applied (allergies, aversions, lunchbox rules)
 - [ ] Sun lunch assembly · Sat grill · (soft) Mon–Fri ≈ ≤ 20 min active
-- [ ] ≤ 2 meat + exactly 1 fish (unless user relaxed); meal counts as one slot
+- [ ] ≤ `max_meat_per_week` meat (currently 3) + exactly 1 fish (unless user relaxed); meal counts as one slot
 - [ ] Every night = main + veg + starch/legume (or a one-dish meal); `plate_check.py` passed in Phase 1
 - [ ] Protein from plant sources first (`#high-protein` versions, protein sides); meat ≤ cap, one fish night
 - [ ] Sun–Thu mains pack for the next day's lunchbox
